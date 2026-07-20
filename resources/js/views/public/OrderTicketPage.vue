@@ -7,11 +7,11 @@
 
     <div class="container mx-auto px-4 py-10 max-w-2xl">
       <!-- Event info banner -->
-      <div class="card-glass p-5 mb-8 flex items-center gap-4">
+      <div v-if="event" class="card-glass p-5 mb-8 flex items-center gap-4">
         <div class="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center text-2xl">🎵</div>
         <div>
-          <div class="font-bold text-white">Gathering Masivers & The Sounds Project 2026</div>
-          <div class="text-sm text-white/50">8 Agustus 2026 · Ecopark Ancol, Jakarta</div>
+          <div class="font-bold text-white">{{ event.name }}</div>
+          <div class="text-sm text-white/50">{{ formatDate(event.event_date) }} · {{ event.location }}, {{ event.city }}</div>
         </div>
       </div>
 
@@ -137,6 +137,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import api from '@/api'
 
 const router = useRouter()
+const event = ref<any>(null)
 const products = ref<any[]>([])
 const provinces = ref<any[]>([])
 const cities = ref<any[]>([])
@@ -192,11 +193,17 @@ function formatRupiah(n: any) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n ?? 0)
 }
 
+function formatDate(d: string) {
+  return d ? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+}
+
 onMounted(async () => {
-  const [prodRes, provRes] = await Promise.all([
+  const [evRes, prodRes, provRes] = await Promise.all([
+    api.get('/public/event'),
     api.get('/public/ticket-products'),
     api.get('/public/provinces'),
   ])
+  event.value = evRes.data.data
   const prodData = prodRes.data.data
   prodData.sort((a: any, b: any) => {
     if (a.is_special && !b.is_special) return -1
