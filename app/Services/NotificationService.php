@@ -117,6 +117,33 @@ class NotificationService
         }
     }
 
+    private function getBaseUrl(): string
+    {
+        $customUrl = Setting::get('app_frontend_url');
+        if (!empty($customUrl)) {
+            return rtrim($customUrl, '/');
+        }
+
+        try {
+            if (request()->hasHeader('Host')) {
+                $scheme = request()->getScheme();
+                $host = request()->getHost();
+                $port = request()->getPort();
+                if (in_array($port, [80, 443])) {
+                    return "{$scheme}://{$host}";
+                }
+                return "{$scheme}://{$host}:{$port}";
+            }
+        } catch (\Throwable $e) {}
+
+        $envFrontend = config('app.frontend_url');
+        if (!empty($envFrontend)) {
+            return rtrim($envFrontend, '/');
+        }
+
+        return rtrim(config('app.url', 'http://localhost'), '/');
+    }
+
     /**
      * Notification 1: Order Created (Pending Payment)
      */
@@ -124,6 +151,8 @@ class NotificationService
     {
         $customer = $order->customer;
         if (!$customer) return;
+
+        $baseUrl = $this->getBaseUrl();
 
         $itemsText = "";
         foreach ($order->items as $item) {
@@ -151,7 +180,7 @@ class NotificationService
             . "Silakan lakukan transfer ke rekening berikut:\n"
             . "{$bankInfo}\n"
             . "Setelah melakukan pembayaran, silakan unggah bukti transfer Anda di link berikut:\n"
-            . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code}\n\n"
+            . "{$baseUrl}/konfirmasi-bayar?search={$order->order_code}\n\n"
             . "Terima kasih dan ditunggu kehadirannya!";
 
         // --- Email HTML ---
@@ -173,7 +202,7 @@ class NotificationService
                 <p style='margin: 4px 0;'><strong>Atas Nama:</strong> {$order->bankAccount?->account_holder_name}</p>
             </div>
             <p style='margin-top: 20px;'>Setelah melakukan transfer, silakan konfirmasi pembayaran Anda di link berikut:</p>
-            <p><a href='" . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code}' style='background: #e53e3e; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Konfirmasi Pembayaran</a></p>
+            <p><a href='{$baseUrl}/konfirmasi-bayar?search={$order->order_code}' style='background: #e53e3e; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Konfirmasi Pembayaran</a></p>
             <br>
             <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
         </div>";
@@ -190,12 +219,14 @@ class NotificationService
         $customer = $order->customer;
         if (!$customer) return;
 
+        $baseUrl = $this->getBaseUrl();
+
         $waMessage = "Halo Kak *{$customer->name}*,\n\n"
             . "Bukti pembayaran untuk No Pesanan *{$order->order_code}* sudah berhasil kami terima! 📩\n\n"
             . "Tim kami sedang melakukan verifikasi pembayaran Anda. Proses ini biasanya membutuhkan waktu maksimal 1x24 jam.\n"
             . "Kami akan menginfokan kembali setelah pembayaran Anda terverifikasi.\n\n"
             . "Cek status pesanan Anda secara berkala di:\n"
-            . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code}\n\n"
+            . "{$baseUrl}/status-order/{$order->order_code}\n\n"
             . "Terima kasih atas kesabaran Anda!";
 
         $emailHtml = "
@@ -204,7 +235,7 @@ class NotificationService
             <p>Halo <strong>{$customer->name}</strong>,</p>
             <p>Bukti transfer untuk No Pesanan <strong>{$order->order_code}</strong> telah kami terima.</p>
             <p>Saat ini tim admin sedang memverifikasi pembayaran Anda (maksimal 1x24 jam). Anda akan menerima notifikasi lanjutan setelah verifikasi selesai.</p>
-            <p><a href='" . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code}' style='background: #3182ce; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Cek Status Order</a></p>
+            <p><a href='{$baseUrl}/status-order/{$order->order_code}' style='background: #3182ce; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Cek Status Order</a></p>
             <br>
             <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
         </div>";
@@ -221,10 +252,12 @@ class NotificationService
         $customer = $order->customer;
         if (!$customer) return;
 
+        $baseUrl = $this->getBaseUrl();
+
         $waMessage = "Halo Kak *{$customer->name}*,\n\n"
             . "Selamat! Pembayaran untuk No Pesanan *{$order->order_code}* telah **DIVERIFIKASI & LUNAS**! 🎉✅\n\n"
             . "Mohon klik link berikut untuk melihat data pesanan dan e-tiket Anda:\n"
-            . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code}\n\n"
+            . "{$baseUrl}/status-order/{$order->order_code}\n\n"
             . "Simpan e-tiket ini dan tunjukkan QR Code pada saat check-in di lokasi acara.\n"
             . "Sampai jumpa di lokasi acara!";
 
@@ -234,7 +267,7 @@ class NotificationService
             <p>Halo <strong>{$customer->name}</strong>,</p>
             <p>Pembayaran Anda untuk No Pesanan <strong>{$order->order_code}</strong> telah kami terima dan diverifikasi.</p>
             <p>E-tiket Anda kini telah aktif. Silakan klik tombol di bawah untuk melihat rincian pesanan dan e-tiket Anda:</p>
-            <p><a href='" . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code}' style='background: #38a169; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-weight: bold;'>Lihat Pesanan & E-Tiket</a></p>
+            <p><a href='{$baseUrl}/status-order/{$order->order_code}' style='background: #38a169; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-weight: bold;'>Lihat Pesanan & E-Tiket</a></p>
             <br>
             <p>Sampai jumpa di event!</p>
             <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
@@ -252,11 +285,13 @@ class NotificationService
         $customer = $order->customer;
         if (!$customer) return;
 
+        $baseUrl = $this->getBaseUrl();
+
         $waMessage = "Halo Kak *{$customer->name}*,\n\n"
             . "Mohon maaf, bukti pembayaran untuk No Pesanan *{$order->order_code}* belum dapat kami verifikasi.\n"
             . "📌 Alasan: _{$reason}_\n\n"
             . "Silakan lakukan upload ulang bukti transfer yang valid melalui link berikut:\n"
-            . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code}\n\n"
+            . "{$baseUrl}/konfirmasi-bayar?search={$order->order_code}\n\n"
             . "Jika ada pertanyaan, silakan hubungi tim kami. Terima kasih!";
 
         $emailHtml = "
@@ -268,7 +303,7 @@ class NotificationService
                 <strong>Alasan Penolakan:</strong><br>{$reason}
             </div>
             <p>Anda dapat mengunggah kembali bukti transfer yang sesuai pada tombol di bawah:</p>
-            <p><a href='" . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code}' style='background: #e53e3e; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Upload Ulang Bukti Bayar</a></p>
+            <p><a href='{$baseUrl}/konfirmasi-bayar?search={$order->order_code}' style='background: #e53e3e; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Upload Ulang Bukti Bayar</a></p>
             <br>
             <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
         </div>";

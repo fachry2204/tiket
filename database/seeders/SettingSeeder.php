@@ -11,6 +11,7 @@ class SettingSeeder extends Seeder
     {
         $settings = [
             ['key' => 'site_name', 'value' => 'Masivers Ticketing', 'label' => 'Nama Situs'],
+            ['key' => 'app_frontend_url', 'value' => '', 'type' => 'string', 'label' => 'URL Domain Website (e.g. https://tiket.masivers.id)'],
             ['key' => 'payment_deadline_hours', 'value' => '24', 'type' => 'integer', 'label' => 'Batas Waktu Bayar (jam)'],
             ['key' => 'max_tickets_per_order', 'value' => '5', 'type' => 'integer', 'label' => 'Maks Tiket per Order'],
             

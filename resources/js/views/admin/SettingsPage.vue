@@ -21,6 +21,21 @@
       <button @click="errorMsg = ''" class="text-red-400/60 hover:text-red-400">✕</button>
     </div>
 
+    <!-- Domain Website Settings Card -->
+    <div class="card-glass p-6">
+      <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+        <div>
+          <div class="font-semibold text-white">🌐 URL Domain Utama Website</div>
+          <div class="text-xs text-white/40">Domain ini digunakan untuk semua link tombol konfirmasi bayar & e-tiket di Email & WhatsApp</div>
+        </div>
+      </div>
+      <div>
+        <label class="label-field">URL Domain (Contoh: https://tiket.masivers.id atau https://masivers.id)</label>
+        <input v-model="form.app_frontend_url" type="text" class="input-field" placeholder="https://tiket.masivers.id (Kosongkan jika ingin otomatis mendeteksi domain saat ini)" />
+        <p class="text-xs text-white/30 mt-1.5">Jika diisi, semua link notifikasi Email & WA akan otomatis mengarah ke domain ini. Jika dikosongkan, sistem otomatis mendeteksi nama domain aktif saat ini.</p>
+      </div>
+    </div>
+
     <!-- Tabs Navigation -->
     <div class="flex border-b border-white/10 gap-4">
       <button
@@ -242,6 +257,7 @@ const showSmtpPass = ref(false)
 const showWaKey = ref(false)
 
 const form = ref<Record<string, any>>({
+  app_frontend_url: '',
   mail_enabled: '0',
   mail_host: '',
   mail_port: 587,
