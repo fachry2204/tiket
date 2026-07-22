@@ -98,17 +98,28 @@ class NotificationService
     }
 
     /**
-     * Send Email message
+     * Send Email message with optional attachments
      */
-    public function sendEmail(string $toEmail, string $subject, string $bodyContent, bool $ignoreEnabled = false): bool
+    public function sendEmail(string $toEmail, string $subject, string $bodyContent, bool $ignoreEnabled = false, array $attachments = []): bool
     {
         if (!$this->configureSmtp($ignoreEnabled)) {
             return false;
         }
 
         try {
-            Mail::html($bodyContent, function ($message) use ($toEmail, $subject) {
+            Mail::html($bodyContent, function ($message) use ($toEmail, $subject, $attachments) {
                 $message->to($toEmail)->subject($subject);
+                foreach ($attachments as $att) {
+                    $filePath = is_array($att) ? ($att['path'] ?? '') : $att;
+                    $fileName = is_array($att) ? ($att['name'] ?? null) : null;
+                    if (!empty($filePath) && file_exists($filePath)) {
+                        if ($fileName) {
+                            $message->attach($filePath, ['as' => $fileName]);
+                        } else {
+                            $message->attach($filePath);
+                        }
+                    }
+                }
             });
             return true;
         } catch (\Throwable $e) {
@@ -254,27 +265,62 @@ class NotificationService
 
         $baseUrl = $this->getBaseUrl();
 
+        // Build list of ticket downloads & attachments
+        $ticketDownloadLinksWa = "";
+        $ticketDownloadButtonsEmail = "";
+        $emailAttachments = [];
+
+        if ($order->eTickets && $order->eTickets->count() > 0) {
+            $ticketDownloadLinksWa .= "📥 *DOWNLOAD FILE E-TICKET:* \n";
+            foreach ($order->eTickets as $idx => $ticket) {
+                $downloadUrl = "{$baseUrl}/api/v1/public/e-tickets/{$ticket->id}/download";
+                $num = $idx + 1;
+                $ticketDownloadLinksWa .= "{$num}. {$ticket->file_name}:\n{$downloadUrl}\n\n";
+
+                $ticketDownloadButtonsEmail .= "<p style='margin: 8px 0;'><a href='{$downloadUrl}' style='background: #2b6cb0; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 6px; display: inline-block; font-size: 14px;'>⬇️ Download {$ticket->file_name}</a></p>";
+
+                // Check local file path for email attachment
+                try {
+                    $realPath = \Illuminate\Support\Facades\Storage::disk('private')->path($ticket->file_path);
+                    if (file_exists($realPath)) {
+                        $emailAttachments[] = ['path' => $realPath, 'name' => $ticket->file_name];
+                    }
+                } catch (\Throwable $e) {}
+            }
+        }
+
         $waMessage = "Halo Kak *{$customer->name}*,\n\n"
-            . "Selamat! Pembayaran untuk No Pesanan *{$order->order_code}* telah **DIVERIFIKASI & LUNAS**! 🎉✅\n\n"
-            . "Mohon klik link berikut untuk melihat data pesanan dan e-tiket Anda:\n"
+            . "🎉 *E-TICKET ANDA SUDAH BISA DI-DOWNLOAD!* 🎉\n\n"
+            . "Selamat! Pembayaran untuk No Pesanan *{$order->order_code}* telah **DIVERIFIKASI & LUNAS**! ✅\n\n"
+            . ($ticketDownloadLinksWa ? "{$ticketDownloadLinksWa}" : "")
+            . "🔗 *CEK STATUS & QR CODE TIKET:* \n"
             . "{$baseUrl}/status-order/{$order->order_code}\n\n"
-            . "Simpan e-tiket ini dan tunjukkan QR Code pada saat check-in di lokasi acara.\n"
+            . "Tunjukkan QR Code ini kepada PIC MASIVERS di lokasi untuk penukaran tiket fisik. Anda juga bisa mengecek Email Masuk / Folder Spam Atau Whatsapp Anda secara berkala.\n\n"
             . "Sampai jumpa di lokasi acara!";
 
         $emailHtml = "
         <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;'>
-            <h2 style='color: #38a169;'>Pembayaran Berhasil & E-Tiket Terbit!</h2>
-            <p>Halo <strong>{$customer->name}</strong>,</p>
-            <p>Pembayaran Anda untuk No Pesanan <strong>{$order->order_code}</strong> telah kami terima dan diverifikasi.</p>
-            <p>E-tiket Anda kini telah aktif. Silakan klik tombol di bawah untuk melihat rincian pesanan dan e-tiket Anda:</p>
-            <p><a href='{$baseUrl}/status-order/{$order->order_code}' style='background: #38a169; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-weight: bold;'>Lihat Pesanan & E-Tiket</a></p>
-            <br>
-            <p>Sampai jumpa di event!</p>
-            <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
+            <div style='background: #38a169; color: #fff; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;'>
+                <h2 style='margin: 0;'>🎉 E-TICKET ANDA SUDAH BISA DI-DOWNLOAD!</h2>
+            </div>
+            <div style='padding: 20px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;'>
+                <p>Halo <strong>{$customer->name}</strong>,</p>
+                <p>Selamat! Pembayaran Anda untuk No Pesanan <strong>{$order->order_code}</strong> telah kami terima dan terverifikasi <strong>LUNAS</strong>. Berkas E-Ticket fisik Anda kini sudah siap di-download!</p>
+                
+                " . ($ticketDownloadButtonsEmail ? "<div style='background: #f7fafc; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;'><h3 style='margin-top:0; color: #2d3748;'>📥 Download File E-Ticket:</h3>{$ticketDownloadButtonsEmail}</div>" : "") . "
+
+                <p style='margin-top: 20px;'>Anda juga dapat melihat rincian pesanan dan QR Code tiket pada link Status Order berikut:</p>
+                <p><a href='{$baseUrl}/status-order/{$order->order_code}' style='background: #38a169; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-weight: bold;'>🎟️ Lihat Status Order & QR Code Tiket</a></p>
+                
+                <p style='margin-top: 20px; font-size: 13px; color: #666;'>Tunjukkan QR Code ini kepada PIC MASIVERS di lokasi untuk penukaran tiket fisik.</p>
+                <br>
+                <p>Sampai jumpa di event!</p>
+                <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
+            </div>
         </div>";
 
         $this->sendWa($customer->phone, $waMessage);
-        $this->sendEmail($customer->email, "Pembayaran Diterima - E-Tiket {$order->order_code} Aktif!", $emailHtml);
+        $this->sendEmail($customer->email, "🎉 E-Ticket {$order->order_code} Siap Di-download! - Masivers Ticketing", $emailHtml, false, $emailAttachments);
     }
 
     /**

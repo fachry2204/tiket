@@ -32,6 +32,23 @@
           
           <div class="font-mono text-electric text-2xl font-bold tracking-widest">{{ order.order_code }}</div>
           <div class="text-white/40 text-xs mt-2">No. Invoice: {{ order.invoice_number }}</div>
+
+          <div v-if="order.e_tickets?.length" class="mt-6 border-t border-white/10 pt-4 text-left">
+            <div class="font-bold text-white mb-3 text-sm flex items-center gap-2">
+              <span>📥</span>
+              <span>Berkas E-Ticket Terlampir ({{ order.e_tickets.length }} File):</span>
+            </div>
+            <div class="space-y-2">
+              <div v-for="file in order.e_tickets" :key="file.id" class="flex items-center justify-between bg-white/5 border border-white/10 p-3 rounded-xl">
+                <div class="truncate flex-1 pr-4 text-sm text-white/90 font-medium">
+                  📄 {{ file.file_name }}
+                </div>
+                <a :href="`/api/v1/public/e-tickets/${file.id}/download`" target="_blank" download class="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5 shadow-md shadow-primary/20">
+                  <span>⬇️</span> Download
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div v-if="order.bank_account && order.order_status === 'pending_payment'" class="mt-4 bg-primary/10 border border-primary/20 rounded-xl p-4">

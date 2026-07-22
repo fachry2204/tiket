@@ -70,4 +70,16 @@ class OrderController extends Controller
         }
         return response()->json(['data' => $order]);
     }
+
+    public function downloadETicket(\App\Models\OrderETicket $eTicket)
+    {
+        if (!\Illuminate\Support\Facades\Storage::disk('private')->exists($eTicket->file_path)) {
+            if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($eTicket->file_path)) {
+                abort(404, 'File e-ticket tidak ditemukan.');
+            }
+            return \Illuminate\Support\Facades\Storage::disk('public')->download($eTicket->file_path, $eTicket->file_name);
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk('private')->download($eTicket->file_path, $eTicket->file_name);
+    }
 }

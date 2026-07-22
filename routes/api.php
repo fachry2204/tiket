@@ -25,6 +25,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/orders', [Public\OrderController::class, 'store']);
         Route::post('/orders/search', [Public\OrderController::class, 'search']);
         Route::get('/orders/{orderCode}', [Public\OrderController::class, 'show']);
+        Route::get('/public/e-tickets/{eTicket}/download', [Public\OrderController::class, 'downloadETicket']);
         Route::post('/orders/{orderCode}/payment-confirmations', [Public\PaymentController::class, 'store']);
     });
 

@@ -126,7 +126,7 @@ class OrderService
     public function getByCode(string $code): ?Order
     {
         return Order::where('order_code', $code)
-            ->with(['customer', 'items.ticketProduct', 'bankAccount', 'latestPayment', 'tickets', 'event'])
+            ->with(['customer', 'items.ticketProduct', 'bankAccount', 'latestPayment', 'tickets', 'eTickets', 'event'])
             ->first();
     }
 
