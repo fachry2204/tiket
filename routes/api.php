@@ -49,6 +49,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/orders/{order}', [Admin\OrderController::class, 'update']);
         Route::post('/orders/{order}/cancel', [Admin\OrderController::class, 'cancel']);
         Route::post('orders/{order}/extend-expiry', [Admin\OrderController::class, 'extendExpiry']);
+        Route::post('orders/{order}/resend-ticket', [Admin\OrderController::class, 'resendTicket']);
         Route::post('orders/{order}/e-tickets', [Admin\OrderController::class, 'uploadETickets']);
         Route::delete('orders/e-tickets/{eTicket}', [Admin\OrderController::class, 'deleteETicket']);
         Route::get('orders/e-tickets/{eTicket}/download', [Admin\OrderController::class, 'downloadETicket']);

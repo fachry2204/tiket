@@ -44,7 +44,8 @@
               <th class="px-4 py-4 font-medium">No HP</th>
               <th class="px-4 py-4 font-medium text-center">Jumlah Tiket</th>
               <th class="px-4 py-4 font-medium text-right">Total Harga</th>
-              <th class="px-4 py-4 font-medium text-center">Status</th>
+              <th class="px-4 py-4 font-medium text-center">Status Bayar</th>
+              <th class="px-4 py-4 font-medium text-center">Status Tiket</th>
               <th class="px-4 py-4 font-medium text-center">Aksi</th>
             </tr>
           </thead>
@@ -60,6 +61,14 @@
               <td class="px-4 py-4 text-right font-bold text-accent whitespace-nowrap">{{ formatRupiah(order.grand_total) }}</td>
               <td class="px-4 py-4 text-center">
                 <span :class="statusBadge(order.order_status)" class="badge whitespace-nowrap">{{ statusLabel(order.order_status) }}</span>
+              </td>
+              <td class="px-4 py-4 text-center whitespace-nowrap">
+                <span v-if="(order.e_tickets?.length || order.e_tickets_count) > 0" class="bg-green-500/20 text-green-400 border border-green-500/30 px-2.5 py-1 rounded-full text-xs font-medium inline-block">
+                  ✅ Sudah Upload
+                </span>
+                <span v-else class="bg-white/5 text-white/40 border border-white/10 px-2.5 py-1 rounded-full text-xs inline-block">
+                  ⏳ Belum Upload
+                </span>
               </td>
               <td class="px-4 py-4 text-center">
                 <RouterLink :to="`/admin/orders/${order.id}`" class="btn-outline text-xs px-3 py-1">Detail</RouterLink>

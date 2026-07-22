@@ -22,7 +22,15 @@
               <div class="font-mono text-electric text-xl font-bold">{{ order.order_code }}</div>
               <div class="text-white/40 text-sm mt-1">{{ formatDateTime(order.created_at) }}</div>
             </div>
-            <span :class="statusBadge(order.order_status)" class="badge text-sm px-3 py-1">{{ statusLabel(order.order_status) }}</span>
+            <div class="flex items-center gap-2">
+              <span :class="statusBadge(order.order_status)" class="badge text-sm px-3 py-1">{{ statusLabel(order.order_status) }}</span>
+              <span v-if="order.e_tickets?.length > 0" class="bg-green-500/20 text-green-400 border border-green-500/30 text-xs px-3 py-1 rounded-full font-medium">
+                ✅ Tiket Terunggah
+              </span>
+              <span v-else class="bg-white/5 text-white/40 border border-white/10 text-xs px-3 py-1 rounded-full">
+                ⏳ Tiket Belum Diupload
+              </span>
+            </div>
           </div>
           
           <div class="border-t border-white/5 pt-6 grid grid-cols-2 gap-4 text-sm">
@@ -96,12 +104,23 @@
               ❌ Batalkan Pesanan
             </button>
             <div v-if="order.order_status === 'paid'" class="space-y-4">
-              <div class="p-4 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-sm text-center">
-                Pesanan sudah lunas.
+              <div class="p-4 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-sm text-center font-medium">
+                ✅ Pesanan Sudah Lunas
               </div>
               
+              <!-- Tombol Kirim / Kirim Ulang Tiket ke Email & WA -->
+              <button 
+                @click="resendTicket" 
+                :disabled="resendingTicket" 
+                class="w-full btn-primary py-3 flex items-center justify-center gap-2 text-sm shadow-lg shadow-primary/20"
+              >
+                <span>📩</span>
+                <span>{{ resendingTicket ? 'Mengirim Tiket...' : 'Kirim Tiket ke Email & WA Pemesan' }}</span>
+              </button>
+
               <div class="border-t border-white/10 pt-4">
-                <h3 class="font-bold text-white mb-3 text-sm">Upload E-Ticket (Multi)</h3>
+                <h3 class="font-bold text-white mb-1 text-sm">Upload E-Ticket (Multi File)</h3>
+                <p class="text-xs text-white/40 mb-3">Unggah berkas tiket fisik (PDF/Gambar) untuk pemesan.</p>
                 <input 
                   type="file" 
                   multiple 
@@ -112,25 +131,31 @@
                 <button 
                   @click="uploadETickets" 
                   :disabled="uploading || !eTicketFiles?.length" 
-                  class="btn-primary w-full py-2 text-sm"
+                  class="btn-outline w-full py-2.5 text-sm"
                 >
-                  {{ uploading ? 'Mengunggah...' : 'Upload File' }}
+                  {{ uploading ? 'Mengunggah...' : 'Upload File Ticket' }}
                 </button>
               </div>
               
               <div v-if="order.e_tickets?.length" class="border-t border-white/10 pt-4 space-y-2">
-                <h3 class="font-bold text-white mb-2 text-sm">File Terunggah:</h3>
-                <div v-for="file in order.e_tickets" :key="file.id" class="flex items-center justify-between bg-white/5 p-3 rounded-lg text-sm">
+                <h3 class="font-bold text-white mb-2 text-sm">File Terunggah ({{ order.e_tickets.length }}):</h3>
+                <div v-for="file in order.e_tickets" :key="file.id" class="flex items-center justify-between bg-white/5 p-3 rounded-lg text-sm border border-white/5">
                   <div class="truncate flex-1 pr-4 text-white/80" :title="file.file_name">
-                    {{ file.file_name }}
+                    📄 {{ file.file_name }}
                   </div>
                   <div class="flex gap-3">
-                    <a :href="getDownloadUrl(file.id)" target="_blank" class="text-blue-400 hover:text-blue-300" title="Download">⬇️</a>
+                    <a :href="getDownloadUrl(file.id)" target="_blank" class="text-blue-400 hover:text-blue-300 font-bold" title="Download">⬇️</a>
                     <button @click="deleteETicket(file.id)" class="text-red-400 hover:text-red-300" title="Hapus">🗑️</button>
                   </div>
                 </div>
               </div>
             </div>
+
+            <div v-else-if="order.order_status !== 'cancelled'" class="p-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 rounded-xl text-xs space-y-1.5 text-center mt-3">
+              <div class="font-bold text-sm text-yellow-200">🔒 Upload & Kirim Tiket Terkunci</div>
+              <p class="text-white/60">Upload E-Ticket dan Pengiriman Tiket hanya dapat dilakukan apabila status pembayaran pesanan ini sudah <strong>LUNAS</strong>.</p>
+            </div>
+
             <div v-if="order.order_status === 'cancelled'" class="text-center p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm">
               Pesanan ini telah dibatalkan.
             </div>
@@ -159,7 +184,22 @@ const order = ref<any>(null)
 const loading = ref(true)
 const processing = ref(false)
 const uploading = ref(false)
+const resendingTicket = ref(false)
 const eTicketFiles = ref<FileList | null>(null)
+
+async function resendTicket() {
+  if (!confirm(`Kirim e-tiket untuk pesanan ${order.value.order_code} ke Email (${order.value.customer?.email}) dan WhatsApp (${order.value.customer?.phone})?`)) return
+
+  resendingTicket.value = true
+  try {
+    const { data } = await api.post(`/admin/orders/${order.value.id}/resend-ticket`)
+    alert(data.message || 'Tiket berhasil dikirim ke Email & WA pemesan.')
+  } catch (e: any) {
+    alert(e.response?.data?.message || 'Gagal mengirim tiket.')
+  } finally {
+    resendingTicket.value = false
+  }
+}
 
 async function fetchOrder() {
   loading.value = true

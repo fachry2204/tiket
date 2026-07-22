@@ -10,7 +10,8 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::with(['customer', 'items.ticketProduct'])
+        $query = Order::with(['customer', 'items.ticketProduct', 'eTickets'])
+            ->withCount('eTickets')
             ->when($request->search, fn($q) => $q
                 ->where('order_code', 'like', "%{$request->search}%")
                 ->orWhereHas('customer', fn($cq) => $cq
@@ -59,8 +60,22 @@ class OrderController extends Controller
         return response()->json(['message' => 'Batas waktu diperpanjang 24 jam.']);
     }
 
+    public function resendTicket(Order $order, \App\Services\NotificationService $notificationService)
+    {
+        $order->load(['customer', 'items', 'bankAccount']);
+        $notificationService->notifyPaymentApproved($order);
+
+        return response()->json(['message' => 'Tiket berhasil dikirim ulang ke Email & WhatsApp pemesan.']);
+    }
+
     public function uploadETickets(Request $request, Order $order)
     {
+        if ($order->order_status !== 'paid') {
+            return response()->json([
+                'message' => 'Upload E-Ticket gagal. Pembayaran pesanan ini belum LUNAS.'
+            ], 422);
+        }
+
         $request->validate([
             'files' => 'required|array',
             'files.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
