@@ -13,7 +13,8 @@ class PaymentService
     public function __construct(
         private TicketService $ticketService,
         private NumberSequenceService $sequenceService,
-        private AuditLogService $auditLog
+        private AuditLogService $auditLog,
+        private NotificationService $notificationService
     ) {}
 
     public function uploadProof(Order $order, array $data, UploadedFile $file): PaymentConfirmation
@@ -31,7 +32,7 @@ class PaymentService
             'private'
         );
 
-        return DB::transaction(function () use ($order, $data, $file, $path) {
+        $payment = DB::transaction(function () use ($order, $data, $file, $path) {
             $payment = PaymentConfirmation::create([
                 'order_id' => $order->id,
                 'sender_name' => $data['sender_name'],
@@ -58,11 +59,19 @@ class PaymentService
 
             return $payment;
         });
+
+        try {
+            $this->notificationService->notifyProofUploaded($order->fresh('customer'));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Notification Error: " . $e->getMessage());
+        }
+
+        return $payment;
     }
 
     public function approvePayment(PaymentConfirmation $payment, int $adminId): Order
     {
-        return DB::transaction(function () use ($payment, $adminId) {
+        $order = DB::transaction(function () use ($payment, $adminId) {
             $order = Order::lockForUpdate()->findOrFail($payment->order_id);
 
             if ($order->order_status !== OrderStatus::WAITING_VERIFICATION->value) {
@@ -110,11 +119,19 @@ class PaymentService
 
             return $order->fresh(['customer', 'items', 'tickets', 'bankAccount']);
         });
+
+        try {
+            $this->notificationService->notifyPaymentApproved($order);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Notification Error: " . $e->getMessage());
+        }
+
+        return $order;
     }
 
     public function rejectPayment(PaymentConfirmation $payment, string $reason, int $adminId): Order
     {
-        return DB::transaction(function () use ($payment, $reason, $adminId) {
+        $order = DB::transaction(function () use ($payment, $reason, $adminId) {
             $order = Order::lockForUpdate()->findOrFail($payment->order_id);
 
             $payment->update([
@@ -136,7 +153,15 @@ class PaymentService
 
             $this->auditLog->log('reject_payment', $payment, [], ['reason' => $reason], $adminId);
 
-            return $order->fresh();
+            return $order->fresh('customer');
         });
+
+        try {
+            $this->notificationService->notifyPaymentRejected($order, $reason);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Notification Error: " . $e->getMessage());
+        }
+
+        return $order;
     }
 }

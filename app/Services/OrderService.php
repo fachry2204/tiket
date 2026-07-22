@@ -11,12 +11,13 @@ class OrderService
 {
     public function __construct(
         private NumberSequenceService $sequenceService,
-        private AuditLogService $auditLog
+        private AuditLogService $auditLog,
+        private NotificationService $notificationService
     ) {}
 
     public function createOrder(array $data, string $ip, string $userAgent): Order
     {
-        return DB::transaction(function () use ($data, $ip, $userAgent) {
+        $order = DB::transaction(function () use ($data, $ip, $userAgent) {
             // 1. Validate & get ticket product with lock
             $product = TicketProduct::lockForUpdate()->findOrFail($data['ticket_product_id']);
 
@@ -101,6 +102,15 @@ class OrderService
 
             return $order->load(['customer', 'items.ticketProduct', 'bankAccount']);
         });
+
+        // Trigger notification outside transaction
+        try {
+            $this->notificationService->notifyOrderCreated($order);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Notification Error: " . $e->getMessage());
+        }
+
+        return $order;
     }
 
     public function searchOrder(string $search): ?Order
@@ -116,7 +126,7 @@ class OrderService
     public function getByCode(string $code): ?Order
     {
         return Order::where('order_code', $code)
-            ->with(['customer', 'items.ticketProduct', 'bankAccount', 'latestPayment', 'tickets'])
+            ->with(['customer', 'items.ticketProduct', 'bankAccount', 'latestPayment', 'tickets', 'event'])
             ->first();
     }
 

@@ -33,6 +33,7 @@ const router = createRouter({
         { path: 'faqs', component: () => import('@/views/admin/FaqsPage.vue') },
         { path: 'reports', component: () => import('@/views/admin/ReportsPage.vue') },
         { path: 'users', component: () => import('@/views/admin/UsersPage.vue') },
+        { path: 'settings', component: () => import('@/views/admin/SettingsPage.vue') },
         { path: 'audit-log', component: () => import('@/views/admin/AuditLogPage.vue') },
       ]
     },

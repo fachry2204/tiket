@@ -81,6 +81,12 @@ Route::prefix('v1')->group(function () {
         // Users
         Route::apiResource('/users', Admin\UserController::class)->except(['show']);
 
+        // Settings
+        Route::get('/settings', [Admin\SettingController::class, 'index']);
+        Route::patch('/settings', [Admin\SettingController::class, 'update']);
+        Route::post('/settings/test-smtp', [Admin\SettingController::class, 'testSmtp']);
+        Route::post('/settings/test-wa', [Admin\SettingController::class, 'testWa']);
+
         // Reports
         Route::get('/reports/sales', [Admin\ReportController::class, 'sales']);
         Route::get('/audit-logs', [Admin\ReportController::class, 'auditLogs']);

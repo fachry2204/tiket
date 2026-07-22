@@ -86,9 +86,9 @@
         <div v-else-if="order.order_status === 'paid'" class="card-dark p-6 rounded-2xl mb-6 text-center">
           <div class="text-4xl mb-3">✅</div>
           <div class="font-bold text-green-400 text-lg">Pembayaran Diterima!</div>
-          <p class="text-white/50 text-sm mt-2">E-ticket Anda telah diterbitkan</p>
+          <p class="text-white/50 text-sm mt-2">Pembayaran anda sudah kami terima, Mohon klik tombol lanjutkan untuk melihat data pesanan anda.</p>
           <RouterLink :to="`/status-order/${order.order_code_full}`" class="btn-primary mt-4 inline-block">
-            Lihat E-Ticket
+            Lihat Pesanan
           </RouterLink>
         </div>
 

@@ -87,6 +87,7 @@ const navItems = [
   { to: '/admin/faqs', label: 'FAQ', icon: '❓' },
   { to: '/admin/reports', label: 'Laporan', icon: '📈' },
   { to: '/admin/users', label: 'Admin', icon: '👤' },
+  { to: '/admin/settings', label: 'Pengaturan', icon: '⚙️' },
   { to: '/admin/audit-log', label: 'Audit Log', icon: '📋' },
 ]
 
@@ -101,6 +102,7 @@ const pageTitles: Record<string, string> = {
   '/admin/faqs': 'Kelola FAQ',
   '/admin/reports': 'Laporan',
   '/admin/users': 'Kelola Admin',
+  '/admin/settings': 'Pengaturan Integrasi & Notifikasi',
   '/admin/audit-log': 'Audit Log',
 }
 
