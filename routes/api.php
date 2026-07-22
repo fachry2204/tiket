@@ -54,6 +54,7 @@ Route::prefix('v1')->group(function () {
         Route::post('orders/{order}/e-tickets', [Admin\OrderController::class, 'uploadETickets']);
         Route::delete('orders/e-tickets/{eTicket}', [Admin\OrderController::class, 'deleteETicket']);
         Route::get('orders/e-tickets/{eTicket}/download', [Admin\OrderController::class, 'downloadETicket']);
+        Route::delete('/orders/{order}', [Admin\OrderController::class, 'destroy']);
 
         // Payments
         Route::get('/payments', [Admin\PaymentController::class, 'index']);
@@ -61,6 +62,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/payments/{payment}/approve', [Admin\PaymentController::class, 'approve']);
         Route::post('/payments/{payment}/reject', [Admin\PaymentController::class, 'reject']);
         Route::get('/payments/{payment}/proof', [Admin\PaymentController::class, 'getProof']);
+        Route::delete('/payments/{payment}', [Admin\PaymentController::class, 'destroy']);
 
         // Check-in
         Route::post('/check-in', [Admin\CheckinController::class, 'checkin']);

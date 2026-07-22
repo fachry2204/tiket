@@ -4,7 +4,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PaymentConfirmation extends Model {
     protected $fillable = [
-        'order_id','sender_name','sender_bank','transfer_date','transferred_amount',
+        'order_id','deleted_order_code','sender_name','sender_bank','transfer_date','transferred_amount',
         'proof_file_path','proof_original_name','proof_mime_type','proof_size',
         'status','rejection_reason','customer_notes','admin_notes',
         'submitted_at','verified_at','verified_by'
@@ -13,6 +13,15 @@ class PaymentConfirmation extends Model {
         'transferred_amount' => 'decimal:2', 'transfer_date' => 'date',
         'submitted_at' => 'datetime', 'verified_at' => 'datetime',
     ];
-    public function order() { return $this->belongsTo(Order::class); }
+    public function order() {
+        return $this->belongsTo(Order::class)->withDefault([
+            'order_code' => $this->deleted_order_code ?? 'Pesanan Terhapus',
+            'customer' => (object)[
+                'name' => 'Pesanan Terhapus',
+                'phone' => '-',
+                'email' => '-'
+            ]
+        ]);
+    }
     public function verifiedBy() { return $this->belongsTo(User::class, 'verified_by'); }
 }

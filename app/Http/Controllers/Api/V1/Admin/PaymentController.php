@@ -55,4 +55,57 @@ class PaymentController extends Controller
         }
         return response()->file($path, ['Content-Type' => $payment->proof_mime_type]);
     }
+
+    public function destroy(PaymentConfirmation $payment, Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $request->user()->password)) {
+            return response()->json([
+                'message' => 'Password admin tidak sesuai.'
+            ], 422);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($payment, $request) {
+            $order = $payment->order;
+
+            if ($payment->proof_file_path && \Illuminate\Support\Facades\Storage::disk('private')->exists($payment->proof_file_path)) {
+                \Illuminate\Support\Facades\Storage::disk('private')->delete($payment->proof_file_path);
+            }
+            $payment->delete();
+
+            if ($order && $order->id) {
+                if ($order->order_status === \App\Enums\OrderStatus::PAID->value) {
+                    foreach ($order->items as $item) {
+                        if ($item->ticketProduct) {
+                            $item->ticketProduct->decrement('sold_quantity', $item->quantity);
+                            $item->ticketProduct->increment('reserved_quantity', $item->quantity);
+                        }
+                    }
+                }
+
+                $order->update([
+                    'order_status' => \App\Enums\OrderStatus::PENDING_PAYMENT->value,
+                    'paid_at' => null,
+                    'verified_at' => null,
+                    'verified_by' => null,
+                    'invoice_number' => null,
+                ]);
+
+                \App\Models\OrderStatusHistory::create([
+                    'order_id' => $order->id,
+                    'from_status' => $order->getOriginal('order_status'),
+                    'to_status' => \App\Enums\OrderStatus::PENDING_PAYMENT->value,
+                    'notes' => 'Verifikasi pembayaran dihapus oleh admin, status dikembalikan ke Menunggu Pembayaran.',
+                    'created_by' => $request->user()->id,
+                ]);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Verifikasi pembayaran berhasil dihapus. Status pemesanan dikembalikan ke Menunggu Pembayaran.'
+        ]);
+    }
 }

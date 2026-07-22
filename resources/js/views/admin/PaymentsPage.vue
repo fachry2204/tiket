@@ -40,8 +40,9 @@
               <td class="px-6 py-4 text-center">
                 <span :class="statusBadge(pay.status)" class="badge">{{ statusLabel(pay.status) }}</span>
               </td>
-              <td class="px-6 py-4 text-right space-x-2">
+              <td class="px-6 py-4 text-right space-x-3">
                 <button @click="openModal(pay)" class="text-primary hover:text-white transition-colors">Lihat Bukti</button>
+                <button @click="openDeleteModal(pay)" class="text-red-400 hover:text-red-300 transition-colors">Hapus</button>
               </td>
             </tr>
           </tbody>
@@ -61,7 +62,7 @@
           <div class="grid grid-cols-2 gap-6 mb-6 text-sm">
             <div>
               <div class="text-white/40 mb-1">Kode Order</div>
-              <div class="font-mono text-electric font-bold">{{ selectedPayment.order?.order_code_full }}</div>
+              <div class="font-mono text-electric font-bold">{{ selectedPayment.order?.order_code || selectedPayment.deleted_order_code || 'Pesanan Terhapus' }}</div>
             </div>
             <div>
               <div class="text-white/40 mb-1">Total Tagihan Order</div>
@@ -109,6 +110,54 @@
             </div>
           </div>
         </div>
+
+        <div class="p-4 border-t border-white/10 bg-white/[0.02] flex justify-between items-center">
+          <button @click="openDeleteModal(selectedPayment)" class="btn-outline border-red-500/40 text-red-400 hover:bg-red-500/10 text-xs px-4 py-2">
+            🗑️ Hapus Verifikasi Ini
+          </button>
+          <button @click="closeModal" class="btn-outline text-xs px-4 py-2">Tutup</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Password Konfirmasi Hapus Verifikasi Bayar -->
+    <div v-if="deletingPayment" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" @click.self="closeDeleteModal">
+      <div class="card-glass w-full max-w-md rounded-2xl p-6 space-y-4 border border-red-500/30">
+        <div class="flex justify-between items-center pb-2 border-b border-white/10">
+          <h3 class="font-bold text-red-400 text-lg flex items-center gap-2">
+            <span>🗑️</span> Hapus Verifikasi Bayar
+          </h3>
+          <button @click="closeDeleteModal" class="text-white/50 hover:text-white">✕</button>
+        </div>
+
+        <p class="text-xs text-white/70">
+          Menghapus verifikasi bayar ini akan mengembalikan status pesanan <strong class="text-electric">{{ deletingPayment.order?.order_code || deletingPayment.deleted_order_code }}</strong> kembali ke <strong>Menunggu Pembayaran</strong>.
+        </p>
+
+        <div>
+          <label class="label-field">Masukkan Password Admin Anda</label>
+          <input 
+            v-model="adminPassword" 
+            type="password" 
+            class="input-field" 
+            placeholder="Password admin..." 
+            @keyup.enter="confirmDeletePayment"
+          />
+          <p v-if="deleteError" class="text-xs text-red-400 mt-1.5 font-medium">⚠️ {{ deleteError }}</p>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button @click="closeDeleteModal" class="flex-1 btn-outline py-2.5 text-xs">
+            Batal
+          </button>
+          <button 
+            @click="confirmDeletePayment" 
+            :disabled="processingDelete || !adminPassword" 
+            class="flex-1 btn-primary bg-red-600 hover:bg-red-500 text-white border-none py-2.5 text-xs font-bold disabled:opacity-50"
+          >
+            {{ processingDelete ? 'Menghapus...' : 'Konfirmasi Hapus' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -123,6 +172,46 @@ const loading = ref(true)
 const selectedPayment = ref<any>(null)
 const adminNotes = ref('')
 const processing = ref(false)
+
+const deletingPayment = ref<any>(null)
+const adminPassword = ref('')
+const processingDelete = ref(false)
+const deleteError = ref('')
+
+function openDeleteModal(pay: any) {
+  deletingPayment.value = pay
+  adminPassword.value = ''
+  deleteError.value = ''
+}
+
+function closeDeleteModal() {
+  deletingPayment.value = null
+  adminPassword.value = ''
+  deleteError.value = ''
+}
+
+async function confirmDeletePayment() {
+  if (!adminPassword.value) {
+    deleteError.value = 'Password admin wajib diisi.'
+    return
+  }
+
+  processingDelete.value = true
+  deleteError.value = ''
+  try {
+    const { data } = await api.delete(`/admin/payments/${deletingPayment.value.id}`, {
+      data: { password: adminPassword.value }
+    })
+    alert(data.message || 'Verifikasi bayar berhasil dihapus.')
+    closeDeleteModal()
+    if (selectedPayment.value) closeModal()
+    fetchPayments()
+  } catch (e: any) {
+    deleteError.value = e.response?.data?.message || 'Password salah atau gagal menghapus.'
+  } finally {
+    processingDelete.value = false
+  }
+}
 
 async function fetchPayments() {
   loading.value = true
@@ -222,12 +311,22 @@ function formatDate(d: string) {
 }
 
 function statusBadge(s: string) {
-  const m: Record<string, string> = { pending: 'badge-waiting', verified: 'badge-paid', rejected: 'badge-rejected' }
+  const m: Record<string, string> = { 
+    pending: 'badge-waiting', 
+    verified: 'badge-paid', 
+    rejected: 'badge-rejected',
+    order_deleted: 'badge-rejected bg-red-500/20 text-red-300 border-red-500/40' 
+  }
   return m[s] ?? 'badge'
 }
 
 function statusLabel(s: string) {
-  const m: Record<string, string> = { pending: 'Menunggu', verified: 'Diverifikasi', rejected: 'Ditolak' }
+  const m: Record<string, string> = { 
+    pending: 'Menunggu', 
+    verified: 'Diverifikasi', 
+    rejected: 'Ditolak',
+    order_deleted: 'Pesanan Terhapus' 
+  }
   return m[s] ?? s
 }
 

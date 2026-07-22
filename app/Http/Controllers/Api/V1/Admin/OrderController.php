@@ -117,4 +117,59 @@ class OrderController extends Controller
             $eTicket->file_name
         );
     }
+
+    public function destroy(Order $order, Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $request->user()->password)) {
+            return response()->json([
+                'message' => 'Password admin tidak sesuai.'
+            ], 422);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order) {
+            // Update payment confirmations to remain in database with status 'order_deleted'
+            \App\Models\PaymentConfirmation::where('order_id', $order->id)->update([
+                'status' => 'order_deleted',
+                'deleted_order_code' => $order->order_code,
+                'order_id' => null,
+            ]);
+
+            // Release quota if needed
+            if (in_array($order->order_status, ['pending_payment', 'waiting_verification'])) {
+                foreach ($order->items as $item) {
+                    if ($item->ticketProduct) {
+                        $item->ticketProduct->decrement('reserved_quantity', $item->quantity);
+                    }
+                }
+            } else if ($order->order_status === 'paid') {
+                foreach ($order->items as $item) {
+                    if ($item->ticketProduct) {
+                        $item->ticketProduct->decrement('sold_quantity', $item->quantity);
+                    }
+                }
+            }
+
+            // Clean up related sub-items
+            $order->items()->delete();
+            $order->statusHistories()->delete();
+            $order->tickets()->delete();
+
+            foreach ($order->eTickets as $eTicket) {
+                if ($eTicket->file_path && \Illuminate\Support\Facades\Storage::disk('private')->exists($eTicket->file_path)) {
+                    \Illuminate\Support\Facades\Storage::disk('private')->delete($eTicket->file_path);
+                }
+            }
+            $order->eTickets()->delete();
+
+            $order->delete();
+        });
+
+        return response()->json([
+            'message' => 'Pesanan berhasil dihapus. Data verifikasi bayar tetap disimpan dengan status Pesanan Terhapus.'
+        ]);
+    }
 }

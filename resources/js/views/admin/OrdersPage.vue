@@ -70,12 +70,54 @@
                   ⏳ Belum Upload
                 </span>
               </td>
-              <td class="px-4 py-4 text-center">
+              <td class="px-4 py-4 text-center space-x-2 whitespace-nowrap">
                 <RouterLink :to="`/admin/orders/${order.id}`" class="btn-outline text-xs px-3 py-1">Detail</RouterLink>
+                <button @click="openDeleteModal(order)" class="btn-outline border-red-500/40 text-red-400 hover:bg-red-500/10 text-xs px-3 py-1">Hapus</button>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Modal Password Konfirmasi Hapus Order -->
+    <div v-if="deletingOrder" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" @click.self="closeDeleteModal">
+      <div class="card-glass w-full max-w-md rounded-2xl p-6 space-y-4 border border-red-500/30">
+        <div class="flex justify-between items-center pb-2 border-b border-white/10">
+          <h3 class="font-bold text-red-400 text-lg flex items-center gap-2">
+            <span>🗑️</span> Hapus Pesanan
+          </h3>
+          <button @click="closeDeleteModal" class="text-white/50 hover:text-white">✕</button>
+        </div>
+
+        <p class="text-xs text-white/70">
+          Anda yakin ingin menghapus pesanan <strong class="text-electric">{{ deletingOrder.order_code }}</strong> ({{ deletingOrder.customer?.name }})? Data verifikasi bayar akan tetap tersimpan dengan status <strong>Pesanan Terhapus</strong>.
+        </p>
+
+        <div>
+          <label class="label-field">Masukkan Password Admin Anda</label>
+          <input 
+            v-model="adminPassword" 
+            type="password" 
+            class="input-field" 
+            placeholder="Password admin..." 
+            @keyup.enter="confirmDeleteOrder"
+          />
+          <p v-if="deleteError" class="text-xs text-red-400 mt-1.5 font-medium">⚠️ {{ deleteError }}</p>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button @click="closeDeleteModal" class="flex-1 btn-outline py-2.5 text-xs">
+            Batal
+          </button>
+          <button 
+            @click="confirmDeleteOrder" 
+            :disabled="processingDelete || !adminPassword" 
+            class="flex-1 btn-primary bg-red-600 hover:bg-red-500 text-white border-none py-2.5 text-xs font-bold disabled:opacity-50"
+          >
+            {{ processingDelete ? 'Menghapus...' : 'Konfirmasi Hapus' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -90,6 +132,45 @@ const orders = ref<any[]>([])
 const loading = ref(true)
 const search = ref('')
 const filterStatus = ref('')
+
+const deletingOrder = ref<any>(null)
+const adminPassword = ref('')
+const processingDelete = ref(false)
+const deleteError = ref('')
+
+function openDeleteModal(order: any) {
+  deletingOrder.value = order
+  adminPassword.value = ''
+  deleteError.value = ''
+}
+
+function closeDeleteModal() {
+  deletingOrder.value = null
+  adminPassword.value = ''
+  deleteError.value = ''
+}
+
+async function confirmDeleteOrder() {
+  if (!adminPassword.value) {
+    deleteError.value = 'Password admin wajib diisi.'
+    return
+  }
+
+  processingDelete.value = true
+  deleteError.value = ''
+  try {
+    const { data } = await api.delete(`/admin/orders/${deletingOrder.value.id}`, {
+      data: { password: adminPassword.value }
+    })
+    alert(data.message || 'Pesanan berhasil dihapus.')
+    closeDeleteModal()
+    fetchOrders()
+  } catch (e: any) {
+    deleteError.value = e.response?.data?.message || 'Password salah atau gagal menghapus pesanan.'
+  } finally {
+    processingDelete.value = false
+  }
+}
 
 async function fetchOrders() {
   loading.value = true
