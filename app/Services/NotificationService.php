@@ -132,9 +132,9 @@ class NotificationService
 
         $bankInfo = "";
         if ($order->bankAccount) {
-            $bankInfo = "Buka Rekening: {$order->bankAccount->bank_name}\n"
+            $bankInfo = "Bank: {$order->bankAccount->bank_name}\n"
                       . "No. Rekening: {$order->bankAccount->account_number}\n"
-                      . "Atas Nama: {$order->bankAccount->account_holder}\n";
+                      . "Atas Nama: {$order->bankAccount->account_holder_name}\n";
         }
 
         $grandTotalFormatted = "Rp " . number_format((float) $order->grand_total, 0, ',', '.');
@@ -144,14 +144,14 @@ class NotificationService
         $waMessage = "Halo Kak *{$customer->name}*,\n\n"
             . "Terima kasih telah melakukan pemesanan di *Masivers Ticketing*! 🎉\n\n"
             . "Berikut adalah rincian pesanan Anda:\n"
-            . "📌 Kode Order: *{$order->order_code_full}*\n"
+            . "📌 No Pesanan: *{$order->order_code}*\n"
             . "🎟️ Detail Tiket:\n{$itemsText}"
             . "💰 Total Pembayaran: *{$grandTotalFormatted}*\n"
             . "⏰ Batas Waktu Bayar: *{$expiryDate} WIB*\n\n"
             . "Silakan lakukan transfer ke rekening berikut:\n"
             . "{$bankInfo}\n"
             . "Setelah melakukan pembayaran, silakan unggah bukti transfer Anda di link berikut:\n"
-            . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code_full}\n\n"
+            . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code}\n\n"
             . "Terima kasih dan ditunggu kehadirannya!";
 
         // --- Email HTML ---
@@ -161,7 +161,7 @@ class NotificationService
             <p>Halo <strong>{$customer->name}</strong>,</p>
             <p>Terima kasih telah memesan tiket di <strong>Masivers Ticketing</strong>. Pesanan Anda telah kami terima dan saat ini menantikan pembayaran.</p>
             <table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>
-                <tr><td style='padding: 8px; border-bottom: 1px solid #ddd;'><strong>Kode Order</strong></td><td style='padding: 8px; border-bottom: 1px solid #ddd;'>{$order->order_code_full}</td></tr>
+                <tr><td style='padding: 8px; border-bottom: 1px solid #ddd;'><strong>No Pesanan</strong></td><td style='padding: 8px; border-bottom: 1px solid #ddd;'>{$order->order_code}</td></tr>
                 <tr><td style='padding: 8px; border-bottom: 1px solid #ddd;'><strong>Total Tagihan</strong></td><td style='padding: 8px; border-bottom: 1px solid #ddd; color: #e53e3e; font-weight: bold;'>{$grandTotalFormatted}</td></tr>
                 <tr><td style='padding: 8px; border-bottom: 1px solid #ddd;'><strong>Batas Waktu Bayar</strong></td><td style='padding: 8px; border-bottom: 1px solid #ddd;'>{$expiryDate} WIB</td></tr>
             </table>
@@ -170,16 +170,16 @@ class NotificationService
             <div style='background: #f7fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;'>
                 <p style='margin: 4px 0;'><strong>Bank:</strong> {$order->bankAccount?->bank_name}</p>
                 <p style='margin: 4px 0;'><strong>No. Rekening:</strong> {$order->bankAccount?->account_number}</p>
-                <p style='margin: 4px 0;'><strong>Atas Nama:</strong> {$order->bankAccount?->account_holder}</p>
+                <p style='margin: 4px 0;'><strong>Atas Nama:</strong> {$order->bankAccount?->account_holder_name}</p>
             </div>
             <p style='margin-top: 20px;'>Setelah melakukan transfer, silakan konfirmasi pembayaran Anda di link berikut:</p>
-            <p><a href='" . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code_full}' style='background: #e53e3e; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Konfirmasi Pembayaran</a></p>
+            <p><a href='" . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code}' style='background: #e53e3e; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Konfirmasi Pembayaran</a></p>
             <br>
             <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
         </div>";
 
         $this->sendWa($customer->phone, $waMessage);
-        $this->sendEmail($customer->email, "Konfirmasi Pesanan {$order->order_code_full} - Masivers Ticketing", $emailHtml);
+        $this->sendEmail($customer->email, "Konfirmasi Pesanan {$order->order_code} - Masivers Ticketing", $emailHtml);
     }
 
     /**
@@ -191,26 +191,26 @@ class NotificationService
         if (!$customer) return;
 
         $waMessage = "Halo Kak *{$customer->name}*,\n\n"
-            . "Bukti pembayaran untuk order *{$order->order_code_full}* sudah berhasil kami terima! 📩\n\n"
+            . "Bukti pembayaran untuk No Pesanan *{$order->order_code}* sudah berhasil kami terima! 📩\n\n"
             . "Tim kami sedang melakukan verifikasi pembayaran Anda. Proses ini biasanya membutuhkan waktu maksimal 1x24 jam.\n"
             . "Kami akan menginfokan kembali setelah pembayaran Anda terverifikasi.\n\n"
             . "Cek status pesanan Anda secara berkala di:\n"
-            . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code_full}\n\n"
+            . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code}\n\n"
             . "Terima kasih atas kesabaran Anda!";
 
         $emailHtml = "
         <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;'>
             <h2 style='color: #3182ce;'>Bukti Pembayaran Diterima</h2>
             <p>Halo <strong>{$customer->name}</strong>,</p>
-            <p>Bukti transfer untuk pesanan <strong>{$order->order_code_full}</strong> telah kami terima.</p>
+            <p>Bukti transfer untuk No Pesanan <strong>{$order->order_code}</strong> telah kami terima.</p>
             <p>Saat ini tim admin sedang memverifikasi pembayaran Anda (maksimal 1x24 jam). Anda akan menerima notifikasi lanjutan setelah verifikasi selesai.</p>
-            <p><a href='" . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code_full}' style='background: #3182ce; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Cek Status Order</a></p>
+            <p><a href='" . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code}' style='background: #3182ce; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Cek Status Order</a></p>
             <br>
             <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
         </div>";
 
         $this->sendWa($customer->phone, $waMessage);
-        $this->sendEmail($customer->email, "Bukti Pembayaran Diterima - {$order->order_code_full}", $emailHtml);
+        $this->sendEmail($customer->email, "Bukti Pembayaran Diterima - {$order->order_code}", $emailHtml);
     }
 
     /**
@@ -222,9 +222,9 @@ class NotificationService
         if (!$customer) return;
 
         $waMessage = "Halo Kak *{$customer->name}*,\n\n"
-            . "Selamat! Pembayaran untuk pesanan *{$order->order_code_full}* telah **DIVERIFIKASI & LUNAS**! 🎉✅\n\n"
+            . "Selamat! Pembayaran untuk No Pesanan *{$order->order_code}* telah **DIVERIFIKASI & LUNAS**! 🎉✅\n\n"
             . "Mohon klik link berikut untuk melihat data pesanan dan e-tiket Anda:\n"
-            . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code_full}\n\n"
+            . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code}\n\n"
             . "Simpan e-tiket ini dan tunjukkan QR Code pada saat check-in di lokasi acara.\n"
             . "Sampai jumpa di lokasi acara!";
 
@@ -232,16 +232,16 @@ class NotificationService
         <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;'>
             <h2 style='color: #38a169;'>Pembayaran Berhasil & E-Tiket Terbit!</h2>
             <p>Halo <strong>{$customer->name}</strong>,</p>
-            <p>Pembayaran Anda untuk pesanan <strong>{$order->order_code_full}</strong> telah kami terima dan diverifikasi.</p>
+            <p>Pembayaran Anda untuk No Pesanan <strong>{$order->order_code}</strong> telah kami terima dan diverifikasi.</p>
             <p>E-tiket Anda kini telah aktif. Silakan klik tombol di bawah untuk melihat rincian pesanan dan e-tiket Anda:</p>
-            <p><a href='" . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code_full}' style='background: #38a169; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-weight: bold;'>Lihat Pesanan & E-Tiket</a></p>
+            <p><a href='" . config('app.frontend_url', config('app.url')) . "/status-order/{$order->order_code}' style='background: #38a169; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-weight: bold;'>Lihat Pesanan & E-Tiket</a></p>
             <br>
             <p>Sampai jumpa di event!</p>
             <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
         </div>";
 
         $this->sendWa($customer->phone, $waMessage);
-        $this->sendEmail($customer->email, "Pembayaran Diterima - E-Tiket {$order->order_code_full} Aktif!", $emailHtml);
+        $this->sendEmail($customer->email, "Pembayaran Diterima - E-Tiket {$order->order_code} Aktif!", $emailHtml);
     }
 
     /**
@@ -253,27 +253,27 @@ class NotificationService
         if (!$customer) return;
 
         $waMessage = "Halo Kak *{$customer->name}*,\n\n"
-            . "Mohon maaf, bukti pembayaran untuk pesanan *{$order->order_code_full}* belum dapat kami verifikasi.\n"
+            . "Mohon maaf, bukti pembayaran untuk No Pesanan *{$order->order_code}* belum dapat kami verifikasi.\n"
             . "📌 Alasan: _{$reason}_\n\n"
             . "Silakan lakukan upload ulang bukti transfer yang valid melalui link berikut:\n"
-            . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code_full}\n\n"
+            . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code}\n\n"
             . "Jika ada pertanyaan, silakan hubungi tim kami. Terima kasih!";
 
         $emailHtml = "
         <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;'>
             <h2 style='color: #e53e3e;'>Verifikasi Pembayaran Ditolak</h2>
             <p>Halo <strong>{$customer->name}</strong>,</p>
-            <p>Mohon maaf, bukti pembayaran untuk pesanan <strong>{$order->order_code_full}</strong> belum dapat diverifikasi.</p>
+            <p>Mohon maaf, bukti pembayaran untuk No Pesanan <strong>{$order->order_code}</strong> belum dapat diverifikasi.</p>
             <div style='background: #fff5f5; border-left: 4px solid #e53e3e; padding: 12px; margin: 15px 0;'>
                 <strong>Alasan Penolakan:</strong><br>{$reason}
             </div>
             <p>Anda dapat mengunggah kembali bukti transfer yang sesuai pada tombol di bawah:</p>
-            <p><a href='" . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code_full}' style='background: #e53e3e; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Upload Ulang Bukti Bayar</a></p>
+            <p><a href='" . config('app.frontend_url', config('app.url')) . "/konfirmasi-bayar?search={$order->order_code}' style='background: #e53e3e; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; display: inline-block;'>Upload Ulang Bukti Bayar</a></p>
             <br>
             <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
         </div>";
 
         $this->sendWa($customer->phone, $waMessage);
-        $this->sendEmail($customer->email, "Pemberitahuan Verifikasi Pembayaran {$order->order_code_full}", $emailHtml);
+        $this->sendEmail($customer->email, "Pemberitahuan Verifikasi Pembayaran {$order->order_code}", $emailHtml);
     }
 }

@@ -12,11 +12,12 @@ class NumberSequenceService
         return DB::transaction(function () {
             $seq = NumberSequence::lockForUpdate()->firstOrCreate(
                 ['type' => 'order'],
-                ['last_number' => 0, 'prefix' => 'MSV-TSP-2026']
+                ['last_number' => 0, 'prefix' => 'MSV']
             );
+            $seq->prefix = 'MSV';
             $seq->last_number += 1;
             $seq->save();
-            return sprintf('%s-%06d', $seq->prefix, $seq->last_number);
+            return sprintf('MSV-%04d', $seq->last_number);
         });
     }
 
