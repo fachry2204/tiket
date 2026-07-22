@@ -68,44 +68,56 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($payment, $request) {
-            $order = $payment->order;
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($payment, $request) {
+                $order = $payment->order;
 
-            if ($payment->proof_file_path && \Illuminate\Support\Facades\Storage::disk('private')->exists($payment->proof_file_path)) {
-                \Illuminate\Support\Facades\Storage::disk('private')->delete($payment->proof_file_path);
-            }
-            $payment->delete();
+                if ($payment->proof_file_path && \Illuminate\Support\Facades\Storage::disk('private')->exists($payment->proof_file_path)) {
+                    \Illuminate\Support\Facades\Storage::disk('private')->delete($payment->proof_file_path);
+                }
+                $payment->delete();
 
-            if ($order && $order->id) {
-                if ($order->order_status === \App\Enums\OrderStatus::PAID->value) {
-                    foreach ($order->items as $item) {
-                        if ($item->ticketProduct) {
-                            $item->ticketProduct->decrement('sold_quantity', $item->quantity);
-                            $item->ticketProduct->increment('reserved_quantity', $item->quantity);
+                if ($order && $order->id) {
+                    if ($order->order_status === \App\Enums\OrderStatus::PAID->value) {
+                        foreach ($order->items as $item) {
+                            if ($item->ticketProduct) {
+                                $product = $item->ticketProduct;
+                                $newSold = max(0, (int)$product->sold_quantity - (int)$item->quantity);
+                                $newReserved = (int)$product->reserved_quantity + (int)$item->quantity;
+                                $product->update([
+                                    'sold_quantity' => $newSold,
+                                    'reserved_quantity' => $newReserved
+                                ]);
+                            }
                         }
                     }
+
+                    $order->update([
+                        'order_status' => \App\Enums\OrderStatus::PENDING_PAYMENT->value,
+                        'paid_at' => null,
+                        'verified_at' => null,
+                        'verified_by' => null,
+                        'invoice_number' => null,
+                    ]);
+
+                    \App\Models\OrderStatusHistory::create([
+                        'order_id' => $order->id,
+                        'from_status' => $order->getOriginal('order_status'),
+                        'to_status' => \App\Enums\OrderStatus::PENDING_PAYMENT->value,
+                        'notes' => 'Verifikasi pembayaran dihapus oleh admin, status dikembalikan ke Menunggu Pembayaran.',
+                        'created_by' => $request->user()->id,
+                    ]);
                 }
+            });
 
-                $order->update([
-                    'order_status' => \App\Enums\OrderStatus::PENDING_PAYMENT->value,
-                    'paid_at' => null,
-                    'verified_at' => null,
-                    'verified_by' => null,
-                    'invoice_number' => null,
-                ]);
-
-                \App\Models\OrderStatusHistory::create([
-                    'order_id' => $order->id,
-                    'from_status' => $order->getOriginal('order_status'),
-                    'to_status' => \App\Enums\OrderStatus::PENDING_PAYMENT->value,
-                    'notes' => 'Verifikasi pembayaran dihapus oleh admin, status dikembalikan ke Menunggu Pembayaran.',
-                    'created_by' => $request->user()->id,
-                ]);
-            }
-        });
-
-        return response()->json([
-            'message' => 'Verifikasi pembayaran berhasil dihapus. Status pemesanan dikembalikan ke Menunggu Pembayaran.'
-        ]);
+            return response()->json([
+                'message' => 'Verifikasi pembayaran berhasil dihapus. Status pemesanan dikembalikan ke Menunggu Pembayaran.'
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Hapus Payment Error: " . $e->getMessage());
+            return response()->json([
+                'message' => 'Gagal menghapus verifikasi bayar: ' . $e->getMessage()
+            ], 422);
+        }
     }
 }

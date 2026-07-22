@@ -130,46 +130,58 @@ class OrderController extends Controller
             ], 422);
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($order) {
-            // Update payment confirmations to remain in database with status 'order_deleted'
-            \App\Models\PaymentConfirmation::where('order_id', $order->id)->update([
-                'status' => 'order_deleted',
-                'deleted_order_code' => $order->order_code,
-                'order_id' => null,
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($order) {
+                // Update payment confirmations to remain in database with status 'order_deleted'
+                \App\Models\PaymentConfirmation::where('order_id', $order->id)->update([
+                    'status' => 'order_deleted',
+                    'deleted_order_code' => $order->order_code,
+                    'order_id' => null,
+                ]);
+
+                // Release quota safely without unsigned integer overflow
+                foreach ($order->items as $item) {
+                    if ($item->ticketProduct) {
+                        $product = $item->ticketProduct;
+                        if (in_array($order->order_status, ['pending_payment', 'waiting_verification'])) {
+                            $newReserved = max(0, (int)$product->reserved_quantity - (int)$item->quantity);
+                            $product->update(['reserved_quantity' => $newReserved]);
+                        } else if ($order->order_status === 'paid') {
+                            $newSold = max(0, (int)$product->sold_quantity - (int)$item->quantity);
+                            $product->update(['sold_quantity' => $newSold]);
+                        }
+                    }
+                }
+
+                // Delete related sub-models safely
+                foreach ($order->tickets as $ticket) {
+                    \Illuminate\Support\Facades\DB::table('ticket_checkins')->where('ticket_id', $ticket->id)->delete();
+                }
+
+                $order->items()->delete();
+                $order->statusHistories()->delete();
+                $order->tickets()->delete();
+
+                if ($order->eTickets) {
+                    foreach ($order->eTickets as $eTicket) {
+                        if ($eTicket->file_path && \Illuminate\Support\Facades\Storage::disk('private')->exists($eTicket->file_path)) {
+                            \Illuminate\Support\Facades\Storage::disk('private')->delete($eTicket->file_path);
+                        }
+                    }
+                    $order->eTickets()->delete();
+                }
+
+                $order->delete();
+            });
+
+            return response()->json([
+                'message' => 'Pesanan berhasil dihapus. Data verifikasi bayar tetap disimpan dengan status Pesanan Terhapus.'
             ]);
-
-            // Release quota if needed
-            if (in_array($order->order_status, ['pending_payment', 'waiting_verification'])) {
-                foreach ($order->items as $item) {
-                    if ($item->ticketProduct) {
-                        $item->ticketProduct->decrement('reserved_quantity', $item->quantity);
-                    }
-                }
-            } else if ($order->order_status === 'paid') {
-                foreach ($order->items as $item) {
-                    if ($item->ticketProduct) {
-                        $item->ticketProduct->decrement('sold_quantity', $item->quantity);
-                    }
-                }
-            }
-
-            // Clean up related sub-items
-            $order->items()->delete();
-            $order->statusHistories()->delete();
-            $order->tickets()->delete();
-
-            foreach ($order->eTickets as $eTicket) {
-                if ($eTicket->file_path && \Illuminate\Support\Facades\Storage::disk('private')->exists($eTicket->file_path)) {
-                    \Illuminate\Support\Facades\Storage::disk('private')->delete($eTicket->file_path);
-                }
-            }
-            $order->eTickets()->delete();
-
-            $order->delete();
-        });
-
-        return response()->json([
-            'message' => 'Pesanan berhasil dihapus. Data verifikasi bayar tetap disimpan dengan status Pesanan Terhapus.'
-        ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Hapus Order Error: " . $e->getMessage());
+            return response()->json([
+                'message' => 'Gagal menghapus pesanan: ' . $e->getMessage()
+            ], 422);
+        }
     }
 }
