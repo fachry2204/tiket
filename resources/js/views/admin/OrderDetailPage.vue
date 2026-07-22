@@ -108,19 +108,10 @@
                 ✅ Pesanan Sudah Lunas
               </div>
               
-              <!-- Tombol Kirim / Kirim Ulang Tiket ke Email & WA -->
-              <button 
-                @click="resendTicket" 
-                :disabled="resendingTicket" 
-                class="w-full btn-primary py-3 flex items-center justify-center gap-2 text-sm shadow-lg shadow-primary/20"
-              >
-                <span>📩</span>
-                <span>{{ resendingTicket ? 'Mengirim Tiket...' : 'Kirim Tiket ke Email & WA Pemesan' }}</span>
-              </button>
-
+              <!-- Section 1: Upload E-Ticket -->
               <div class="border-t border-white/10 pt-4">
-                <h3 class="font-bold text-white mb-1 text-sm">Upload E-Ticket (Multi File)</h3>
-                <p class="text-xs text-white/40 mb-3">Unggah berkas tiket fisik (PDF/Gambar) untuk pemesan.</p>
+                <h3 class="font-bold text-white mb-1 text-sm">Upload E-Ticket (PDF / Gambar)</h3>
+                <p class="text-xs text-white/40 mb-3">Pilih file e-ticket fisik untuk pemesan.</p>
                 <input 
                   type="file" 
                   multiple 
@@ -129,16 +120,19 @@
                   class="block w-full text-xs text-white/50 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 mb-3 cursor-pointer"
                 />
                 <button 
+                  v-if="eTicketFiles?.length"
                   @click="uploadETickets" 
-                  :disabled="uploading || !eTicketFiles?.length" 
-                  class="btn-outline w-full py-2.5 text-sm"
+                  :disabled="uploading" 
+                  class="btn-outline w-full py-2 text-xs mb-3 flex items-center justify-center gap-2"
                 >
-                  {{ uploading ? 'Mengunggah...' : 'Upload File Ticket' }}
+                  <span>⬆️</span>
+                  <span>{{ uploading ? 'Mengunggah...' : 'Upload Berkas Saja' }}</span>
                 </button>
               </div>
               
+              <!-- Section 2: List Berkas E-Ticket Terunggah -->
               <div v-if="order.e_tickets?.length" class="border-t border-white/10 pt-4 space-y-2">
-                <h3 class="font-bold text-white mb-2 text-sm">File Terunggah ({{ order.e_tickets.length }}):</h3>
+                <h3 class="font-bold text-white mb-2 text-sm">File Tiket Terunggah ({{ order.e_tickets.length }}):</h3>
                 <div v-for="file in order.e_tickets" :key="file.id" class="flex items-center justify-between bg-white/5 p-3 rounded-lg text-sm border border-white/5">
                   <div class="truncate flex-1 pr-4 text-white/80" :title="file.file_name">
                     📄 {{ file.file_name }}
@@ -148,6 +142,25 @@
                     <button @click="deleteETicket(file.id)" class="text-red-400 hover:text-red-300" title="Hapus">🗑️</button>
                   </div>
                 </div>
+              </div>
+
+              <!-- Section 3: Tombol Kirim Tiket (Posisi di Bawah Upload Tiket) -->
+              <div class="border-t border-white/10 pt-4 space-y-2">
+                <button 
+                  @click="saveAndSendTicket" 
+                  :disabled="processingSend || (!order.e_tickets?.length && !eTicketFiles?.length)" 
+                  class="w-full btn-primary py-3 flex items-center justify-center gap-2 text-sm shadow-lg shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:opacity-40"
+                >
+                  <span>📩</span>
+                  <span>{{ processingSend ? 'Proses Mengunggah & Mengirim...' : 'Simpan & Kirim Tiket ke Email & WA' }}</span>
+                </button>
+
+                <p v-if="!order.e_tickets?.length && !eTicketFiles?.length" class="text-[11px] text-yellow-400/90 text-center font-medium bg-yellow-500/10 p-2 rounded-lg border border-yellow-500/20">
+                  ⚠️ Upload berkas e-ticket terlebih dahulu untuk mengirimkan tiket ke pemesan.
+                </p>
+                <p v-else-if="eTicketFiles?.length && !order.e_tickets?.length" class="text-[11px] text-green-400 text-center font-medium bg-green-500/10 p-2 rounded-lg border border-green-500/20">
+                  💡 Mengeklik tombol di atas akan menyimpan file yang dipilih dan langsung mengirimi user.
+                </p>
               </div>
             </div>
 
@@ -184,20 +197,51 @@ const order = ref<any>(null)
 const loading = ref(true)
 const processing = ref(false)
 const uploading = ref(false)
-const resendingTicket = ref(false)
+const processingSend = ref(false)
 const eTicketFiles = ref<FileList | null>(null)
 
-async function resendTicket() {
-  if (!confirm(`Kirim e-tiket untuk pesanan ${order.value.order_code} ke Email (${order.value.customer?.email}) dan WhatsApp (${order.value.customer?.phone})?`)) return
+async function saveAndSendTicket() {
+  // 1. If files are selected in file input, upload them first
+  if (eTicketFiles.value && eTicketFiles.value.length > 0) {
+    uploading.value = true
+    const formData = new FormData()
+    for (let i = 0; i < eTicketFiles.value.length; i++) {
+      formData.append('files[]', eTicketFiles.value[i])
+    }
+    try {
+      await api.post(`/admin/orders/${order.value.id}/e-tickets`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      eTicketFiles.value = null
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+      if (fileInput) fileInput.value = ''
+      await fetchOrder()
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Gagal mengunggah berkas e-ticket')
+      uploading.value = false
+      return
+    } finally {
+      uploading.value = false
+    }
+  }
 
-  resendingTicket.value = true
+  // 2. Ensure order has uploaded tickets
+  if (!order.value.e_tickets || order.value.e_tickets.length === 0) {
+    alert('Upload file e-ticket terlebih dahulu sebelum mengirim tiket ke pemesan!')
+    return
+  }
+
+  // 3. Confirm & Send to Email + WA
+  if (!confirm(`Simpan & Kirim e-tiket pesanan ${order.value.order_code} ke Email (${order.value.customer?.email}) dan WhatsApp (${order.value.customer?.phone})?`)) return
+
+  processingSend.value = true
   try {
     const { data } = await api.post(`/admin/orders/${order.value.id}/resend-ticket`)
-    alert(data.message || 'Tiket berhasil dikirim ke Email & WA pemesan.')
+    alert(data.message || 'Tiket berhasil disimpan dan dikirim ke Email & WA pemesan!')
   } catch (e: any) {
     alert(e.response?.data?.message || 'Gagal mengirim tiket.')
   } finally {
-    resendingTicket.value = false
+    processingSend.value = false
   }
 }
 
