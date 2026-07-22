@@ -24,11 +24,11 @@ class SettingSeeder extends Seeder
             ['key' => 'mail_from_address', 'value' => 'noreply@masivers.id', 'type' => 'string', 'label' => 'Email Pengirim'],
             ['key' => 'mail_from_name', 'value' => 'Masivers Ticketing', 'type' => 'string', 'label' => 'Nama Pengirim'],
             
-            // FlowKirim WA Gateway Settings
+            // Fonnte WA Gateway Settings
             ['key' => 'wa_gateway_enabled', 'value' => '0', 'type' => 'boolean', 'label' => 'Aktifkan Notifikasi WhatsApp'],
-            ['key' => 'wa_gateway_url', 'value' => 'https://api.flowkirim.com/api/v1/send-message', 'type' => 'string', 'label' => 'URL Endpoint FlowKirim'],
-            ['key' => 'wa_gateway_api_key', 'value' => '', 'type' => 'string', 'label' => 'API Key FlowKirim'],
-            ['key' => 'wa_gateway_sender', 'value' => '', 'type' => 'string', 'label' => 'Nomor Pengirim / Device ID'],
+            ['key' => 'wa_gateway_url', 'value' => 'https://api.fonnte.com/send', 'type' => 'string', 'label' => 'URL Endpoint Fonnte'],
+            ['key' => 'wa_gateway_api_key', 'value' => '', 'type' => 'string', 'label' => 'API Token Fonnte'],
+            ['key' => 'wa_gateway_sender', 'value' => '', 'type' => 'string', 'label' => 'Nomor Pengirim (Opsional)'],
         ];
         foreach ($settings as $setting) {
             Setting::firstOrCreate(['key' => $setting['key']], $setting);

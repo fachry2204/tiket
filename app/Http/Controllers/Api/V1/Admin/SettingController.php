@@ -44,13 +44,15 @@ class SettingController extends Controller
             <p><small>Waktu Uji Coba: " . now()->format('d M Y, H:i:s') . " WIB</small></p>
         </div>";
 
-        $success = $this->notificationService->sendEmail($request->email, "Uji Coba SMTP - Masivers Ticketing", $body);
-
-        if ($success) {
-            return response()->json(['message' => 'Email uji coba berhasil dikirim. Silakan periksa kotak masuk/spam Anda.']);
+        try {
+            $success = $this->notificationService->sendEmail($request->email, "Uji Coba SMTP - Masivers Ticketing", $body, true);
+            if ($success) {
+                return response()->json(['message' => 'Email uji coba berhasil dikirim. Silakan periksa kotak masuk/spam Anda.']);
+            }
+            return response()->json(['message' => 'Gagal mengirim email uji coba. Periksa kembali konfigurasi SMTP Host, Username, dan Password.'], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Gagal mengirim email uji coba: ' . $e->getMessage()], 422);
         }
-
-        return response()->json(['message' => 'Gagal mengirim email uji coba. Periksa kembali konfigurasi SMTP Host, Username, dan Password.'], 422);
     }
 
     public function testWa(Request $request)
@@ -59,16 +61,18 @@ class SettingController extends Controller
             'phone' => 'required|string',
         ]);
 
-        $message = "Halo! Ini adalah pesan uji coba dari *Masivers Ticketing* via FlowKirim.com WhatsApp Gateway. 🎉\n\n"
-                 . "Konfigurasi WhatsApp Gateway Anda telah berjalan dengan sukses! ✅\n"
+        $message = "Halo! Ini adalah pesan uji coba dari *Masivers Ticketing* via Fonnte.com WhatsApp Gateway. 🎉\n\n"
+                 . "Konfigurasi WhatsApp Gateway Fonnte Anda telah berjalan dengan sukses! ✅\n"
                  . "Waktu: " . now()->format('d M Y, H:i:s') . " WIB";
 
-        $success = $this->notificationService->sendWa($request->phone, $message);
-
-        if ($success) {
-            return response()->json(['message' => 'Pesan WhatsApp uji coba berhasil dikirim via FlowKirim.com.']);
+        try {
+            $success = $this->notificationService->sendWa($request->phone, $message, true);
+            if ($success) {
+                return response()->json(['message' => 'Pesan WhatsApp uji coba berhasil dikirim via Fonnte.com.']);
+            }
+            return response()->json(['message' => 'Gagal mengirim WhatsApp uji coba. Periksa kembali URL Endpoint dan Token Fonnte Anda.'], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Gagal mengirim WhatsApp uji coba: ' . $e->getMessage()], 422);
         }
-
-        return response()->json(['message' => 'Gagal mengirim WhatsApp uji coba. Periksa kembali URL Endpoint, API Key, dan Nomor Pengirim FlowKirim.'], 422);
     }
 }

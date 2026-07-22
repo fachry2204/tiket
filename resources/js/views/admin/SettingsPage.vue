@@ -32,7 +32,7 @@
       <button
         @click="activeTab = 'wa'"
         :class="['pb-3 px-2 font-medium text-sm transition-colors relative', activeTab === 'wa' ? 'text-primary' : 'text-white/60 hover:text-white']">
-        💬 WhatsApp Gateway (FlowKirim.com)
+        💬 WhatsApp Gateway (Fonnte.com)
         <span v-if="activeTab === 'wa'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
       </button>
     </div>
@@ -115,13 +115,13 @@
       </div>
     </div>
 
-    <!-- Tab Content: WA Gateway (FlowKirim.com) -->
+    <!-- Tab Content: WA Gateway (Fonnte.com) -->
     <div v-if="activeTab === 'wa'" class="space-y-6">
       <div class="card-glass p-6 space-y-6">
         <div class="flex items-center justify-between pb-4 border-b border-white/10">
           <div>
             <div class="font-semibold text-white">Status Notifikasi WhatsApp</div>
-            <div class="text-xs text-white/40">Kirim pesan WhatsApp otomatis via FlowKirim.com untuk setiap perubahan status pesanan</div>
+            <div class="text-xs text-white/40">Kirim pesan WhatsApp otomatis via Fonnte.com untuk setiap perubahan status pesanan</div>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" v-model="form.wa_gateway_enabled" true-value="1" false-value="0" class="sr-only peer" />
@@ -129,32 +129,34 @@
           </label>
         </div>
 
+        <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-xs text-emerald-300 space-y-1.5">
+          <div class="font-bold flex items-center gap-1.5 text-sm text-emerald-200">
+            <span>💡</span> Panduan Pengaturan Fonnte.com WhatsApp Gateway:
+          </div>
+          <p>• <strong>Dapatkan API Token</strong>: Daftar & Login di Dashboard Fonnte (<a href="https://md.fonnte.com" target="_blank" class="underline text-emerald-200 font-bold">https://md.fonnte.com</a>) → Menu Device → Copy <strong>Token</strong> perangkat Anda.</p>
+          <p>• <strong>URL Endpoint API</strong>: Biarkan default <code class="bg-black/30 px-1.5 py-0.5 rounded text-white">https://api.fonnte.com/send</code></p>
+        </div>
+
         <div class="space-y-4">
           <div>
-            <label class="label-field">URL Endpoint API FlowKirim</label>
-            <input v-model="form.wa_gateway_url" type="text" class="input-field" placeholder="https://scan.flowkirim.com/api/send-message atau https://api.flowkirim.com/send-message" />
-            <p class="text-xs text-white/30 mt-1">Endpoint HTTP POST pengiriman pesan dari akun FlowKirim.com Anda</p>
+            <label class="label-field">URL Endpoint API Fonnte</label>
+            <input v-model="form.wa_gateway_url" type="text" class="input-field" placeholder="https://api.fonnte.com/send" />
+            <p class="text-xs text-white/30 mt-1">Endpoint HTTP POST pengiriman pesan dari Fonnte.com</p>
           </div>
 
           <div>
-            <label class="label-field">API Key / Token FlowKirim</label>
+            <label class="label-field">API Token Fonnte *</label>
             <div class="relative">
-              <input v-model="form.wa_gateway_api_key" :type="showWaKey ? 'text' : 'password'" class="input-field pr-12" placeholder="Masukkan API Key / Token FlowKirim" />
+              <input v-model="form.wa_gateway_api_key" :type="showWaKey ? 'text' : 'password'" class="input-field pr-12" placeholder="Masukkan Token Fonnte Anda" />
               <button type="button" @click="showWaKey = !showWaKey" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-sm">
                 {{ showWaKey ? '🙈' : '👁️' }}
               </button>
             </div>
           </div>
-
-          <div>
-            <label class="label-field">Nomor Pengirim / Device ID</label>
-            <input v-model="form.wa_gateway_sender" type="text" class="input-field" placeholder="08xxxxxxxxxx atau Device ID FlowKirim" />
-            <p class="text-xs text-white/30 mt-1">Nomor pengirim atau ID perangkat yang terhubung di FlowKirim.com</p>
-          </div>
         </div>
 
         <div class="pt-4 border-t border-white/10 flex items-center justify-between">
-          <span class="text-xs text-white/40">Pastikan akun dan device FlowKirim.com dalam kondisi connected.</span>
+          <span class="text-xs text-white/40">Pastikan device Fonnte di dashboard Fonnte.com dalam kondisi Connected.</span>
           <button type="button" @click="openTestWaModal" class="btn-outline text-sm px-4 py-2 flex items-center gap-2">
             <span>🧪</span> Uji Coba Pengiriman WhatsApp
           </button>
@@ -198,7 +200,7 @@
       <div class="card-dark w-full max-w-md rounded-2xl p-6 relative">
         <button @click="showTestWaModal = false" class="absolute top-4 right-4 text-white/40 hover:text-white">✕</button>
         <h3 class="text-lg font-bold text-white mb-2">Uji Coba Pengiriman WhatsApp</h3>
-        <p class="text-xs text-white/50 mb-4">Sistem akan menguji API FlowKirim.com dengan mengirim pesan ke nomor WhatsApp tujuan.</p>
+        <p class="text-xs text-white/50 mb-4">Sistem akan menguji API Fonnte.com dengan mengirim pesan ke nomor WhatsApp tujuan.</p>
         
         <form @submit.prevent="sendTestWa" class="space-y-4">
           <div>
@@ -306,6 +308,8 @@ async function sendTestEmail() {
   testEmailSuccess.value = ''
   testEmailError.value = ''
   try {
+    // Auto-save form settings first
+    await api.patch('/admin/settings', { settings: form.value })
     const { data } = await api.post('/admin/settings/test-smtp', { email: testEmailAddress.value })
     testEmailSuccess.value = data.message
   } catch (e: any) {
@@ -326,6 +330,8 @@ async function sendTestWa() {
   testWaSuccess.value = ''
   testWaError.value = ''
   try {
+    // Auto-save form settings first
+    await api.patch('/admin/settings', { settings: form.value })
     const { data } = await api.post('/admin/settings/test-wa', { phone: testWaPhone.value })
     testWaSuccess.value = data.message
   } catch (e: any) {

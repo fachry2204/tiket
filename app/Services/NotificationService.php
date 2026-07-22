@@ -10,10 +10,10 @@ class NotificationService
     /**
      * Apply runtime SMTP configuration from settings database
      */
-    private function configureSmtp(): bool
+    private function configureSmtp(bool $ignoreEnabled = false): bool
     {
         $enabled = Setting::get('mail_enabled', '0');
-        if (!$enabled || $enabled === '0' || $enabled === 'false') {
+        if (!$ignoreEnabled && (!$enabled || $enabled === '0' || $enabled === 'false')) {
             return false;
         }
 
@@ -44,18 +44,17 @@ class NotificationService
     }
 
     /**
-     * Send WhatsApp message via FlowKirim.com Gateway API
+     * Send WhatsApp message via Fonnte.com Gateway API
      */
-    public function sendWa(string $toPhone, string $message): bool
+    public function sendWa(string $toPhone, string $message, bool $ignoreEnabled = false): bool
     {
         $enabled = Setting::get('wa_gateway_enabled', '0');
-        if (!$enabled || $enabled === '0' || $enabled === 'false') {
+        if (!$ignoreEnabled && (!$enabled || $enabled === '0' || $enabled === 'false')) {
             return false;
         }
 
-        $url = Setting::get('wa_gateway_url');
+        $url = Setting::get('wa_gateway_url', 'https://api.fonnte.com/send');
         $apiKey = Setting::get('wa_gateway_api_key');
-        $sender = Setting::get('wa_gateway_sender');
 
         if (empty($url) || empty($apiKey)) {
             return false;
@@ -68,42 +67,42 @@ class NotificationService
                 $phone = '62' . substr($phone, 1);
             }
 
-            // FlowKirim.com compatible payload format
+            // Fonnte.com & WA Gateway compatible payload format
             $payload = [
+                'target' => $phone,
+                'message' => $message,
+                'countryCode' => '62',
                 'token' => $apiKey,
                 'api_key' => $apiKey,
-                'to' => $phone,
-                'target' => $phone,
                 'phone' => $phone,
                 'number' => $phone,
-                'message' => $message,
+                'to' => $phone,
                 'text' => $message,
-                'sender' => $sender,
-                'device_id' => $sender,
             ];
 
-            $response = Http::withToken($apiKey)
-                ->timeout(10)
-                ->post($url, $payload);
+            // Fonnte uses Authorization: TOKEN
+            $response = Http::withHeaders([
+                'Authorization' => $apiKey,
+            ])->timeout(10)->post($url, $payload);
             
             if ($response->failed()) {
-                Log::error("FlowKirim WA Gateway Error: " . $response->body());
+                Log::error("Fonnte WA Gateway Error: " . $response->body());
                 return false;
             }
 
             return true;
         } catch (\Throwable $e) {
-            Log::error("FlowKirim WA Gateway Exception: " . $e->getMessage());
-            return false;
+            Log::error("Fonnte WA Gateway Exception: " . $e->getMessage());
+            throw $e;
         }
     }
 
     /**
      * Send Email message
      */
-    public function sendEmail(string $toEmail, string $subject, string $bodyContent): bool
+    public function sendEmail(string $toEmail, string $subject, string $bodyContent, bool $ignoreEnabled = false): bool
     {
-        if (!$this->configureSmtp()) {
+        if (!$this->configureSmtp($ignoreEnabled)) {
             return false;
         }
 
@@ -114,7 +113,7 @@ class NotificationService
             return true;
         } catch (\Throwable $e) {
             Log::error("SMTP Email Exception: " . $e->getMessage());
-            return false;
+            throw $e;
         }
     }
 
