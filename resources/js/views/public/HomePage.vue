@@ -43,7 +43,7 @@
         <!-- Event info pills -->
         <div v-if="event" class="flex flex-wrap items-center justify-center gap-3 mb-8 text-sm">
           <div class="bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-white/70">
-            📅 8,9,10 Agustus 2026
+            📅 7, 8, 9 Agustus 2026
           </div>
           <div class="bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-white/70">
             📍 {{ event.location }}, {{ event.city }}

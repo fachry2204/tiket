@@ -18,7 +18,7 @@
 
         <div v-if="order.order_status === 'paid'" class="mt-4 bg-white/5 border border-white/10 rounded-xl p-6 text-center">
           <div class="text-accent font-bold text-lg mb-2">🎟 E-Ticket / Bukti Penukaran</div>
-          <p class="text-white/50 text-sm mb-4">Tunjukkan QR Code ini kepada PIC MASIVERS di lokasi untuk penukaran tiket fisik Atau Cek Email Atau Whatsapp Anda Untuk Melihat Ticket Anda.</p>
+          <p class="text-white/50 text-sm mb-4">Tunjukkan QR Code ini kepada PIC MASIVERS di lokasi untuk penukaran tiket fisik. Anda juga bisa mengecek Email Masuk / Folder Spam Atau Whatsapp Anda secara berkala Untuk Melihat Ticket Anda.</p>
           
           <div v-if="adminWa" class="mb-6">
             <a :href="waLink" target="_blank" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-medium text-sm py-2.5 px-5 rounded-xl transition-all shadow-lg shadow-green-600/20">
