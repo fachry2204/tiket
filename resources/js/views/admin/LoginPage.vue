@@ -20,14 +20,14 @@
 
         <form @submit.prevent="handleLogin" class="space-y-5">
           <div>
-            <label class="label-field">Email / Username</label>
-            <input v-model="form.email" type="text" class="input-field" placeholder="admin@masivers.id" required />
+            <label class="label-field">Username</label>
+            <input v-model="form.username" type="text" class="input-field" required />
           </div>
 
           <div>
             <label class="label-field">Password</label>
             <div class="relative">
-              <input v-model="form.password" :type="showPass ? 'text' : 'password'" class="input-field pr-12" placeholder="••••••••" required />
+              <input v-model="form.password" :type="showPass ? 'text' : 'password'" class="input-field pr-12" required />
               <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 text-sm">
                 {{ showPass ? '🙈' : '👁️' }}
               </button>
@@ -70,7 +70,7 @@ import { useAuthStore } from '@/stores/auth'
 const auth = useAuthStore()
 const router = useRouter()
 
-const form = ref({ email: '', password: '', remember: false })
+const form = ref({ username: '', password: '', remember: false })
 const loading = ref(false)
 const error = ref('')
 const showPass = ref(false)
@@ -79,10 +79,10 @@ async function handleLogin() {
   loading.value = true
   error.value = ''
   try {
-    await auth.login(form.value.email, form.value.password, form.value.remember)
+    await auth.login(form.value.username, form.value.password, form.value.remember)
     router.push('/admin/dashboard')
   } catch (e: any) {
-    error.value = e.response?.data?.errors?.email?.[0] || e.response?.data?.message || 'Login gagal. Periksa kembali email dan password.'
+    error.value = e.response?.data?.errors?.username?.[0] || e.response?.data?.message || 'Login gagal. Periksa kembali username dan password.'
   } finally {
     loading.value = false
   }

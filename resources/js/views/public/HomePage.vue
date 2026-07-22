@@ -34,10 +34,7 @@
 
 
         <!-- Title -->
-        <h1 v-if="event" class="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter mb-4 text-white drop-shadow-2xl">
-          {{ event.name || 'MASIVERS TICKETING' }}
-        </h1>
-        <h1 v-else class="text-5xl md:text-7xl font-black tracking-tighter mb-4">
+        <h1 class="text-5xl md:text-7xl font-black tracking-tighter mb-4">
           <span class="gradient-text neon-glow">THE SOUNDS</span><br>
           <span class="text-white">PROJECT</span>
           <span class="text-primary"> 2026</span>
@@ -46,7 +43,7 @@
         <!-- Event info pills -->
         <div v-if="event" class="flex flex-wrap items-center justify-center gap-3 mb-8 text-sm">
           <div class="bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-white/70">
-            📅 {{ formatDate(event.event_date) }}
+            📅 8,9,10 Agustus 2026
           </div>
           <div class="bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-white/70">
             📍 {{ event.location }}, {{ event.city }}
@@ -128,9 +125,7 @@ function updateCountdown() {
   ]
 }
 
-function formatDate(d: string) {
-  return d ? new Date(d).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''
-}
+
 
 
 

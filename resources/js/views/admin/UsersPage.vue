@@ -14,7 +14,7 @@
       <table v-else class="w-full text-sm text-left">
         <thead class="bg-white/5 text-white/60">
           <tr>
-            <th class="px-6 py-4 font-medium">Nama / Email</th>
+            <th class="px-6 py-4 font-medium">Nama / Username</th>
             <th class="px-6 py-4 font-medium">Role</th>
             <th class="px-6 py-4 font-medium">Status</th>
             <th class="px-6 py-4 font-medium">Login Terakhir</th>
@@ -25,7 +25,7 @@
           <tr v-for="user in users" :key="user.id" class="hover:bg-white/5 transition-colors">
             <td class="px-6 py-4">
               <div class="font-medium text-white">{{ user.name }}</div>
-              <div class="text-white/40">{{ user.email }}</div>
+              <div class="text-white/40">{{ user.username }}</div>
             </td>
             <td class="px-6 py-4">
               <span class="badge bg-primary/20 text-primary capitalize">{{ user.role.replace('_', ' ') }}</span>
@@ -63,8 +63,8 @@
             <input v-model="form.name" type="text" class="input-field" required />
           </div>
           <div>
-            <label class="label-field">Email</label>
-            <input v-model="form.email" type="email" class="input-field" required />
+            <label class="label-field">Username</label>
+            <input v-model="form.username" type="text" class="input-field" required />
           </div>
           <div>
             <label class="label-field">Role</label>
@@ -114,10 +114,17 @@ const isEdit = ref(false)
 const saving = ref(false)
 const error = ref('')
 
-const form = ref({
-  id: null as number | null,
+const form = ref<{
+  id: number | null
+  name: string
+  username: string
+  role: string
+  password?: string
+  is_active: boolean
+}>({
+  id: null,
   name: '',
-  email: '',
+  username: '',
   role: 'finance_admin',
   password: '',
   is_active: true
@@ -140,7 +147,7 @@ function openModal(user?: any) {
     form.value = { ...user, password: '' }
   } else {
     isEdit.value = false
-    form.value = { id: null, name: '', email: '', role: 'finance_admin', password: '', is_active: true }
+    form.value = { id: null, name: '', username: '', role: 'finance_admin', password: '', is_active: true }
   }
   showModal.value = true
 }

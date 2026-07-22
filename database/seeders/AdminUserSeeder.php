@@ -15,7 +15,7 @@ class AdminUserSeeder extends Seeder
     {
         // Super admin
         User::updateOrCreate(
-            ['email' => env('SEED_ADMIN_EMAIL', 'fachry')],
+            ['username' => env('SEED_ADMIN_EMAIL', 'fachry')],
             [
                 'name' => env('SEED_ADMIN_NAME', 'Super Admin'),
                 'password' => Hash::make(env('SEED_ADMIN_PASSWORD', 'bangbens')),

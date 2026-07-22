@@ -17,20 +17,20 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|string',
+            'username' => 'required|string',
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('username', $request->username)->first();
 
         if (!$user || !$user->is_active) {
-            throw ValidationException::withMessages(['email' => ['Akun tidak ditemukan atau tidak aktif.']]);
+            throw ValidationException::withMessages(['username' => ['Akun tidak ditemukan atau tidak aktif.']]);
         }
 
         // Check brute force lock
         if ($user->locked_until && now()->lt($user->locked_until)) {
             $minutes = now()->diffInMinutes($user->locked_until);
-            throw ValidationException::withMessages(['email' => ["Akun dikunci sementara. Coba lagi dalam {$minutes} menit."]]);
+            throw ValidationException::withMessages(['username' => ["Akun dikunci sementara. Coba lagi dalam {$minutes} menit."]]);
         }
 
         if (!Hash::check($request->password, $user->password)) {
@@ -38,7 +38,7 @@ class AuthController extends Controller
             if ($user->failed_login_attempts >= 5) {
                 $user->update(['locked_until' => now()->addMinutes(30)]);
             }
-            throw ValidationException::withMessages(['email' => ['Email atau password salah.']]);
+            throw ValidationException::withMessages(['username' => ['Username atau password salah.']]);
         }
 
         // Successful login
@@ -59,7 +59,7 @@ class AuthController extends Controller
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
-                'email' => $user->email,
+                'username' => $user->username,
                 'role' => $user->role,
             ],
         ]);

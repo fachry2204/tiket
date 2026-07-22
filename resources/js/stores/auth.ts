@@ -5,7 +5,7 @@ import api from '@/api'
 interface AdminUser {
   id: number
   name: string
-  email: string
+  username: string
   role: string
 }
 
@@ -17,10 +17,10 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!token.value && !!user.value)
   const isSuperAdmin = computed(() => user.value?.role === 'super_admin')
 
-  async function login(email: string, password: string, remember = false) {
+  async function login(username: string, password: string, remember = false) {
     loading.value = true
     try {
-      const { data } = await api.post('/admin/auth/login', { email, password, remember })
+      const { data } = await api.post('/admin/auth/login', { username, password, remember })
       token.value = data.token
       user.value = data.user
       localStorage.setItem('admin_token', data.token)
