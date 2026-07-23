@@ -112,10 +112,8 @@ class OrderController extends Controller
             abort(404, 'File tidak ditemukan.');
         }
 
-        return \Illuminate\Support\Facades\Storage::disk('private')->download(
-            $eTicket->file_path, 
-            $eTicket->file_name
-        );
+        $path = \Illuminate\Support\Facades\Storage::disk('private')->path($eTicket->file_path);
+        return response()->download($path, $eTicket->file_name);
     }
 
     public function destroy(Order $order, Request $request)
