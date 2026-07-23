@@ -133,11 +133,14 @@ class OrderController extends Controller
         try {
             \Illuminate\Support\Facades\DB::transaction(function () use ($order) {
                 // Update payment confirmations to remain in database with status 'order_deleted'
-                \App\Models\PaymentConfirmation::where('order_id', $order->id)->update([
+                $paymentUpdateData = [
                     'status' => 'order_deleted',
-                    'deleted_order_code' => $order->order_code,
                     'order_id' => null,
-                ]);
+                ];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('payment_confirmations', 'deleted_order_code')) {
+                    $paymentUpdateData['deleted_order_code'] = $order->order_code;
+                }
+                \App\Models\PaymentConfirmation::where('order_id', $order->id)->update($paymentUpdateData);
 
                 // Release quota safely without unsigned integer overflow
                 foreach ($order->items as $item) {
