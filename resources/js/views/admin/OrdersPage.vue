@@ -45,7 +45,6 @@
               <th class="px-4 py-4 font-medium text-center">Jumlah Tiket</th>
               <th class="px-4 py-4 font-medium text-right">Total Harga</th>
               <th class="px-4 py-4 font-medium text-center">Status Bayar</th>
-              <th class="px-4 py-4 font-medium text-center">Status Tiket</th>
               <th class="px-4 py-4 font-medium text-center">Aksi</th>
             </tr>
           </thead>
@@ -59,16 +58,16 @@
               <td class="px-4 py-4 text-white/80">{{ order.customer?.phone }}</td>
               <td class="px-4 py-4 text-center font-bold text-white">{{ ticketCount(order) }}</td>
               <td class="px-4 py-4 text-right font-bold text-accent whitespace-nowrap">{{ formatRupiah(order.grand_total) }}</td>
-              <td class="px-4 py-4 text-center">
-                <span :class="statusBadge(order.order_status)" class="badge whitespace-nowrap">{{ statusLabel(order.order_status) }}</span>
-              </td>
               <td class="px-4 py-4 text-center whitespace-nowrap">
-                <span v-if="(order.e_tickets?.length || order.e_tickets_count) > 0" class="bg-green-500/20 text-green-400 border border-green-500/30 px-2.5 py-1 rounded-full text-xs font-medium inline-block">
-                  ✅ Sudah Upload
-                </span>
-                <span v-else class="bg-white/5 text-white/40 border border-white/10 px-2.5 py-1 rounded-full text-xs inline-block">
-                  ⏳ Belum Upload
-                </span>
+                <div class="flex flex-col items-center gap-1.5">
+                  <span :class="statusBadge(order.order_status)" class="badge whitespace-nowrap">{{ statusLabel(order.order_status) }}</span>
+                  <span v-if="(order.e_tickets?.length || order.e_tickets_count) > 0" class="bg-green-500/20 text-green-400 border border-green-500/30 px-2.5 py-0.5 rounded-full text-[11px] font-medium inline-block">
+                    ✅ Sudah Upload
+                  </span>
+                  <span v-else class="bg-white/5 text-white/40 border border-white/10 px-2.5 py-0.5 rounded-full text-[11px] inline-block">
+                    ⏳ Belum Upload
+                  </span>
+                </div>
               </td>
               <td class="px-4 py-4 text-center space-x-1.5 whitespace-nowrap">
                 <button 
