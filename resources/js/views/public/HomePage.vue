@@ -13,7 +13,10 @@
 
         <div class="flex items-center gap-3">
           <RouterLink to="/konfirmasi-bayar" class="btn-outline text-sm py-2 px-4 hidden sm:block">Cek Status</RouterLink>
-          <RouterLink to="/order-ticket" class="btn-primary text-sm py-2 px-4">Order Tiket</RouterLink>
+          <span v-if="isClosed" class="bg-red-500/20 text-red-400 border border-red-500/40 text-xs px-3 py-2 rounded-xl font-bold flex items-center gap-1.5">
+            🔒 CLOSED
+          </span>
+          <RouterLink v-else to="/order-ticket" class="btn-primary text-sm py-2 px-4">Order Tiket</RouterLink>
         </div>
       </div>
     </nav>
@@ -32,6 +35,14 @@
 
       <div class="relative container mx-auto px-4 py-20 text-center">
 
+        <!-- Closed Banner Notice -->
+        <div v-if="isClosed" class="max-w-2xl mx-auto mb-8 card-glass border-red-500/40 bg-red-950/40 p-6 rounded-2xl text-center space-y-2 backdrop-blur-xl shadow-2xl">
+          <div class="inline-flex items-center gap-2 bg-red-500/20 border border-red-500/50 text-red-400 font-bold px-4 py-1.5 rounded-full text-xs tracking-wider">
+            <span>🔒</span> PENJUALAN TIKET CLOSED
+          </div>
+          <h3 class="text-xl font-bold text-white">Penjualan Tiket Sedang Ditutup</h3>
+          <p class="text-white/80 text-sm leading-relaxed">{{ closedMessage }}</p>
+        </div>
 
         <!-- Title -->
         <h1 class="text-5xl md:text-7xl font-black tracking-tighter mb-4">
@@ -67,7 +78,10 @@
 
         <!-- CTA Buttons -->
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <RouterLink to="/order-ticket" class="btn-accent text-lg px-8 py-4 shadow-lg shadow-accent/20">
+          <button v-if="isClosed" disabled class="opacity-60 cursor-not-allowed text-lg px-8 py-4 bg-white/10 text-white/40 border border-white/10 rounded-2xl font-bold">
+            🔒 Penjualan Tiket Closed
+          </button>
+          <RouterLink v-else to="/order-ticket" class="btn-accent text-lg px-8 py-4 shadow-lg shadow-accent/20">
             🎫 Pesan Tiket Sekarang
           </RouterLink>
           <RouterLink to="/konfirmasi-bayar" class="btn-outline text-lg px-8 py-4">
@@ -99,6 +113,8 @@ import { RouterLink } from 'vue-router'
 import api from '@/api'
 
 const event = ref<any>(null)
+const isClosed = ref(false)
+const closedMessage = ref('')
 
 const countdown = ref([
   { label: 'Hari', value: 0 },
@@ -130,12 +146,16 @@ function updateCountdown() {
 
 
 onMounted(async () => {
-  const [evRes] = await Promise.all([
-    api.get('/public/event'),
-  ])
-  event.value = evRes.data.data
-  updateCountdown()
-  countdownInterval = setInterval(updateCountdown, 1000)
+  try {
+    const { data } = await api.get('/public/event')
+    event.value = data.data
+    isClosed.value = !!data.ticket_closed
+    closedMessage.value = data.ticket_closed_message || 'Mohon maaf, penjualan tiket saat ini sedang ditutup.'
+    updateCountdown()
+    countdownInterval = setInterval(updateCountdown, 1000)
+  } catch (e) {
+    console.error('Failed to load event data', e)
+  }
 })
 
 onUnmounted(() => clearInterval(countdownInterval))

@@ -50,6 +50,12 @@
         💬 WhatsApp Gateway (Fonnte.com)
         <span v-if="activeTab === 'wa'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
       </button>
+      <button
+        @click="activeTab = 'closed'"
+        :class="['pb-3 px-2 font-medium text-sm transition-colors relative', activeTab === 'closed' ? 'text-primary' : 'text-white/60 hover:text-white']">
+        🔒 Penutupan Tiket (Closed Mode)
+        <span v-if="activeTab === 'closed'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+      </button>
     </div>
 
     <!-- Tab Content: SMTP -->
@@ -179,6 +185,43 @@
       </div>
     </div>
 
+    <!-- Tab Content: Ticket Closed Mode -->
+    <div v-if="activeTab === 'closed'" class="space-y-6">
+      <div class="card-glass p-6 space-y-6">
+        <div class="flex items-center justify-between pb-4 border-b border-white/10">
+          <div>
+            <div class="font-semibold text-white flex items-center gap-2">
+              <span>🔒 Mode Penutupan Penjualan Tiket (Closed Mode)</span>
+              <span v-if="form.ticket_closed === '1'" class="bg-red-500/20 text-red-400 border border-red-500/30 text-xs px-2.5 py-0.5 rounded-full font-bold">
+                WEBSITE CLOSED
+              </span>
+              <span v-else class="bg-green-500/20 text-green-400 border border-green-500/30 text-xs px-2.5 py-0.5 rounded-full font-bold">
+                WEBSITE OPEN
+              </span>
+            </div>
+            <div class="text-xs text-white/40 mt-1">Jika di-ON-kan, website tiket akan menampilkan pengumuman bahwa penjualan tiket sedang ditutup dan transaksi baru akan diblokir.</div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" v-model="form.ticket_closed" true-value="1" false-value="0" class="sr-only peer" />
+            <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+          </label>
+        </div>
+
+        <div v-if="form.ticket_closed === '1'" class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-xs text-red-300 space-y-1">
+          <div class="font-bold flex items-center gap-1.5 text-sm text-red-200">
+            <span>⚠️</span> Status Aktif: Penjualan Tiket Sedang Ditutup (CLOSED)
+          </div>
+          <p>Seluruh tombol pemesanan tiket pada halaman publik akan dikunci, dan transaksi pembuatan order baru akan diblokir oleh server.</p>
+        </div>
+
+        <div>
+          <label class="label-field">Pesan / Alasan Penutupan Tiket</label>
+          <textarea v-model="form.ticket_closed_message" class="input-field min-h-[100px]" placeholder="Mohon maaf, penjualan tiket saat ini sedang ditutup." />
+          <p class="text-xs text-white/30 mt-1.5">Pesan ini akan ditampilkan kepada pengguna di halaman publik ketika mereka mengunjungi website atau mencoba melakukan pemesanan.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal Test Email -->
     <div v-if="showTestEmailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div class="card-dark w-full max-w-md rounded-2xl p-6 relative">
@@ -248,7 +291,7 @@
 import { ref, onMounted } from 'vue'
 import api from '@/api'
 
-const activeTab = ref<'smtp' | 'wa'>('smtp')
+const activeTab = ref<'smtp' | 'wa' | 'closed'>('smtp')
 const saving = ref(false)
 const successMsg = ref('')
 const errorMsg = ref('')
@@ -258,6 +301,8 @@ const showWaKey = ref(false)
 
 const form = ref<Record<string, any>>({
   app_frontend_url: '',
+  ticket_closed: '0',
+  ticket_closed_message: 'Mohon maaf, penjualan tiket saat ini sedang ditutup.',
   mail_enabled: '0',
   mail_host: '',
   mail_port: 587,

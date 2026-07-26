@@ -15,7 +15,22 @@
         </div>
       </div>
 
-      <form @submit.prevent="submitOrder" class="space-y-6">
+      <!-- Ticket Closed Notice Banner -->
+      <div v-if="isClosed" class="card-glass border-red-500/40 bg-red-950/40 p-8 rounded-2xl text-center space-y-4 shadow-2xl">
+        <div class="w-16 h-16 bg-red-500/20 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-red-500/30">
+          🔒
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-white mb-2">Penjualan Tiket Sedang Ditutup</h2>
+          <p class="text-white/80 text-sm leading-relaxed max-w-md mx-auto">{{ closedMessage }}</p>
+        </div>
+        <div class="pt-4 flex justify-center gap-4">
+          <RouterLink to="/" class="btn-outline text-sm py-2.5 px-6">← Kembali ke Beranda</RouterLink>
+          <RouterLink to="/konfirmasi-bayar" class="btn-primary text-sm py-2.5 px-6">💳 Cek Status Pesanan</RouterLink>
+        </div>
+      </div>
+
+      <form v-else @submit.prevent="submitOrder" class="space-y-6">
         <!-- Ticket selection -->
         <div class="card-dark p-6 rounded-2xl">
           <h2 class="font-semibold text-white mb-4">Pilih Tiket</h2>
@@ -138,6 +153,8 @@ import api from '@/api'
 
 const router = useRouter()
 const event = ref<any>(null)
+const isClosed = ref(false)
+const closedMessage = ref('')
 const products = ref<any[]>([])
 const provinces = ref<any[]>([])
 const cities = ref<any[]>([])
@@ -204,6 +221,8 @@ onMounted(async () => {
     api.get('/public/provinces'),
   ])
   event.value = evRes.data.data
+  isClosed.value = !!evRes.data.ticket_closed
+  closedMessage.value = evRes.data.ticket_closed_message || 'Mohon maaf, penjualan tiket saat ini sedang ditutup.'
   const prodData = prodRes.data.data
   prodData.sort((a: any, b: any) => {
     if (a.is_special && !b.is_special) return -1

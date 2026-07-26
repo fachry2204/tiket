@@ -17,6 +17,12 @@ class OrderService
 
     public function createOrder(array $data, string $ip, string $userAgent): Order
     {
+        $ticketClosed = \App\Models\Setting::get('ticket_closed', '0');
+        if (in_array($ticketClosed, ['1', 'true', true], true)) {
+            $msg = \App\Models\Setting::get('ticket_closed_message', 'Mohon maaf, penjualan tiket saat ini sedang ditutup.');
+            throw new \Exception($msg);
+        }
+
         $order = DB::transaction(function () use ($data, $ip, $userAgent) {
             // 1. Validate & get ticket product with lock
             $product = TicketProduct::lockForUpdate()->findOrFail($data['ticket_product_id']);

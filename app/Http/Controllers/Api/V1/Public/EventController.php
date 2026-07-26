@@ -11,7 +11,14 @@ class EventController extends Controller
     public function show()
     {
         $event = Event::where('status', 'published')->first();
-        return response()->json(['data' => $event]);
+        $ticketClosed = \App\Models\Setting::get('ticket_closed', '0');
+        $ticketClosedMessage = \App\Models\Setting::get('ticket_closed_message', 'Mohon maaf, penjualan tiket saat ini sedang ditutup.');
+
+        return response()->json([
+            'data' => $event,
+            'ticket_closed' => in_array($ticketClosed, ['1', 'true', true], true),
+            'ticket_closed_message' => $ticketClosedMessage,
+        ]);
     }
 
     public function ticketProducts()
