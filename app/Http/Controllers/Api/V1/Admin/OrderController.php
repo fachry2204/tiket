@@ -68,6 +68,20 @@ class OrderController extends Controller
         return response()->json(['message' => 'Tiket berhasil dikirim ulang ke Email & WhatsApp pemesan.']);
     }
 
+    public function sendFollowup(Order $order, \App\Services\NotificationService $notificationService)
+    {
+        if ($order->order_status === 'paid') {
+            return response()->json([
+                'message' => 'Pesanan ini sudah LUNAS. Followup hanya untuk pesanan yang belum dibayar.'
+            ], 422);
+        }
+
+        $order->load(['customer', 'items', 'bankAccount']);
+        $notificationService->notifyPaymentFollowup($order);
+
+        return response()->json(['message' => 'Pesan followup pengingat pembayaran berhasil dikirim ke Email & WhatsApp pemesan.']);
+    }
+
     public function uploadETickets(Request $request, Order $order)
     {
         if ($order->order_status !== 'paid') {

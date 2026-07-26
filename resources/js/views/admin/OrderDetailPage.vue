@@ -96,6 +96,14 @@
               ⏳ Perpanjang Waktu Bayar
             </button>
             <button 
+              v-if="order.order_status !== 'paid'" 
+              @click="sendFollowup" 
+              :disabled="processing"
+              class="w-full btn-outline border-amber-500/50 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 py-3 flex items-center justify-center gap-2"
+            >
+              📲 Kirim Pesan Follow Up Bayar
+            </button>
+            <button 
               v-if="!['paid', 'cancelled'].includes(order.order_status)" 
               @click="cancelOrder" 
               :disabled="processing"
@@ -148,29 +156,23 @@
               <div class="border-t border-white/10 pt-4 space-y-2">
                 <button 
                   @click="saveAndSendTicket" 
-                  :disabled="processingSend || (!order.e_tickets?.length && !eTicketFiles?.length)" 
-                  class="w-full btn-primary py-3 flex items-center justify-center gap-2 text-sm shadow-lg shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:opacity-40"
+                  :disabled="processingSend" 
+                  class="w-full btn-primary py-3 flex items-center justify-center gap-2 font-bold text-sm"
                 >
                   <span>📩</span>
-                  <span>{{ processingSend ? 'Proses Mengunggah & Mengirim...' : 'Simpan & Kirim Tiket ke Email & WA' }}</span>
+                  <span>{{ processingSend ? 'Mengirim Tiket...' : 'Kirim Berkas Tiket ke Pemesan' }}</span>
                 </button>
-
-                <p v-if="!order.e_tickets?.length && !eTicketFiles?.length" class="text-[11px] text-yellow-400/90 text-center font-medium bg-yellow-500/10 p-2 rounded-lg border border-yellow-500/20">
-                  ⚠️ Upload berkas e-ticket terlebih dahulu untuk mengirimkan tiket ke pemesan.
-                </p>
-                <p v-else-if="eTicketFiles?.length && !order.e_tickets?.length" class="text-[11px] text-green-400 text-center font-medium bg-green-500/10 p-2 rounded-lg border border-green-500/20">
-                  💡 Mengeklik tombol di atas akan menyimpan file yang dipilih dan langsung mengirimi user.
-                </p>
+                <p class="text-[11px] text-white/40 text-center">Akan mengirim notifikasi WhatsApp + lampiran email e-ticket ke customer.</p>
               </div>
             </div>
 
             <div v-else-if="order.order_status !== 'cancelled'" class="p-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 rounded-xl text-xs space-y-1.5 text-center mt-3">
-              <div class="font-bold text-sm text-yellow-200">🔒 Upload & Kirim Tiket Terkunci</div>
-              <p class="text-white/60">Upload E-Ticket dan Pengiriman Tiket hanya dapat dilakukan apabila status pembayaran pesanan ini sudah <strong>LUNAS</strong>.</p>
+              <div>⚠️ Pesanan ini belum lunas.</div>
+              <div>Menu upload tiket fisik hanya dapat diakses apabila status pesanan sudah <strong>LUNAS</strong>.</div>
             </div>
 
             <div v-if="order.order_status === 'cancelled'" class="text-center p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm">
-              Pesanan ini telah dibatalkan.
+              Pesanan Dibatalkan
             </div>
             <button 
               @click="openDeleteModal" 
@@ -181,7 +183,7 @@
           </div>
         </div>
         
-        <div class="card-dark rounded-xl p-6">
+        <div v-if="order.expires_at" class="card-dark rounded-xl p-6">
           <h2 class="font-semibold text-white mb-4">Batas Waktu Pembayaran</h2>
           <div class="bg-white/5 rounded-lg p-4 text-center">
             <div class="font-mono text-lg font-bold text-electric mb-1">{{ formatDateTime(order.expires_at) }}</div>
@@ -354,6 +356,21 @@ async function cancelOrder() {
     fetchOrder()
   } catch (e: any) {
     alert(e.response?.data?.message || 'Gagal membatalkan pesanan')
+  } finally {
+    processing.value = false
+  }
+}
+
+async function sendFollowup() {
+  if (!confirm(`Kirim pesan followup pengingat pembayaran ke WhatsApp & Email ${order.value.customer?.name} (${order.value.order_code})?`)) return
+  
+  processing.value = true
+  try {
+    const { data } = await api.post(`/admin/orders/${order.value.id}/followup`)
+    alert(data.message || 'Pesan followup berhasil dikirim.')
+    fetchOrder()
+  } catch (e: any) {
+    alert(e.response?.data?.message || 'Gagal mengirim pesan followup.')
   } finally {
     processing.value = false
   }

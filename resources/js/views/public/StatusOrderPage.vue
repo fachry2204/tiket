@@ -13,7 +13,7 @@
           <div class="flex justify-between"><span>Nama</span><span class="text-white">{{ order.customer?.name }}</span></div>
           <div class="flex justify-between"><span>Email</span><span class="text-white">{{ order.customer?.email }}</span></div>
           <div class="flex justify-between"><span>Total</span><span class="text-accent font-bold">{{ formatRupiah(order.grand_total) }}</span></div>
-          <div class="flex justify-between"><span>Batas Bayar</span><span>{{ order.expires_at ? new Date(order.expires_at).toLocaleString('id-ID') : '-' }}</span></div>
+          <div v-if="order.expires_at" class="flex justify-between"><span>Batas Bayar</span><span>{{ new Date(order.expires_at).toLocaleString('id-ID') }}</span></div>
         </div>
 
         <div v-if="order.order_status === 'paid'" class="mt-4 bg-white/5 border border-white/10 rounded-xl p-6 text-center">

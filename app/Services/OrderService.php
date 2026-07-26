@@ -70,7 +70,7 @@ class OrderService
                 'admin_fee' => $adminFee,
                 'unique_code' => $uniqueCode,
                 'grand_total' => $grandTotal,
-                'expires_at' => now()->addHours(24),
+                'expires_at' => null,
                 'terms_accepted_at' => now(),
                 'privacy_accepted_at' => now(),
                 'created_ip' => $ip,

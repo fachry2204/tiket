@@ -70,9 +70,18 @@
                   ⏳ Belum Upload
                 </span>
               </td>
-              <td class="px-4 py-4 text-center space-x-2 whitespace-nowrap">
-                <RouterLink :to="`/admin/orders/${order.id}`" class="btn-outline text-xs px-3 py-1">Detail</RouterLink>
-                <button @click="openDeleteModal(order)" class="btn-outline border-red-500/40 text-red-400 hover:bg-red-500/10 text-xs px-3 py-1">Hapus</button>
+              <td class="px-4 py-4 text-center space-x-1.5 whitespace-nowrap">
+                <button 
+                  v-if="order.order_status !== 'paid'" 
+                  @click="followUpOrder(order)" 
+                  :disabled="followingUpId === order.id"
+                  class="btn-outline border-amber-500/50 text-amber-400 hover:bg-amber-500/10 text-xs px-2.5 py-1 disabled:opacity-50"
+                  title="Kirim pesan pengingat pembayaran ke WA & Email customer"
+                >
+                  {{ followingUpId === order.id ? 'Mengirim...' : '📲 Followup' }}
+                </button>
+                <RouterLink :to="`/admin/orders/${order.id}`" class="btn-outline text-xs px-2.5 py-1">Detail</RouterLink>
+                <button @click="openDeleteModal(order)" class="btn-outline border-red-500/40 text-red-400 hover:bg-red-500/10 text-xs px-2.5 py-1">Hapus</button>
               </td>
             </tr>
           </tbody>
@@ -137,6 +146,21 @@ const deletingOrder = ref<any>(null)
 const adminPassword = ref('')
 const processingDelete = ref(false)
 const deleteError = ref('')
+const followingUpId = ref<number | null>(null)
+
+async function followUpOrder(order: any) {
+  if (confirm(`Kirim pesan followup pengingat pembayaran ke WhatsApp & Email ${order.customer?.name} (${order.order_code})?`)) {
+    followingUpId.value = order.id
+    try {
+      const { data } = await api.post(`/admin/orders/${order.id}/followup`)
+      alert(data.message || 'Pesan followup berhasil dikirim.')
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Gagal mengirim pesan followup.')
+    } finally {
+      followingUpId.value = null
+    }
+  }
+}
 
 function openDeleteModal(order: any) {
   deletingOrder.value = order

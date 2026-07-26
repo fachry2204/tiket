@@ -13,7 +13,7 @@
         <div class="card-glass p-6 mb-6 text-center border-green-500/20">
           <div class="text-4xl mb-3">🎉</div>
           <h1 class="text-xl font-bold text-white">Order Berhasil Dibuat!</h1>
-          <p class="text-white/50 text-sm mt-2">Segera lakukan pembayaran sebelum batas waktu habis</p>
+          <p class="text-white/50 text-sm mt-2">Segera lakukan pembayaran dan unggah bukti transfer</p>
           <div class="inline-block mt-3 font-mono text-electric bg-electric/10 px-4 py-2 rounded-lg text-sm">
             {{ order.order_code }}
           </div>
@@ -67,7 +67,7 @@
             </div>
           </div>
 
-          <div class="mt-4 text-sm text-white/50">
+          <div v-if="order.expires_at" class="mt-4 text-sm text-white/50">
             <span class="text-red-400 font-semibold">Batas Waktu: </span>
             {{ formatDateTime(order.expires_at) }}
           </div>

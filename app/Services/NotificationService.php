@@ -357,4 +357,79 @@ class NotificationService
         $this->sendWa($customer->phone, $waMessage);
         $this->sendEmail($customer->email, "Pemberitahuan Verifikasi Pembayaran {$order->order_code}", $emailHtml);
     }
+
+    /**
+     * Notification 5: Payment Follow Up (Interactive WA & Email)
+     */
+    public function notifyPaymentFollowup(Order $order): void
+    {
+        $customer = $order->customer;
+        if (!$customer) return;
+
+        $baseUrl = $this->getBaseUrl();
+
+        $itemsText = "";
+        foreach ($order->items as $item) {
+            $itemsText .= "- {$item->ticket_name} (x{$item->quantity})\n";
+        }
+
+        $bankInfo = "";
+        if ($order->bankAccount) {
+            $bankInfo = "Bank: {$order->bankAccount->bank_name}\n"
+                      . "No. Rekening: {$order->bankAccount->account_number}\n"
+                      . "Atas Nama: {$order->bankAccount->account_holder_name}\n";
+        }
+
+        $grandTotalFormatted = "Rp " . number_format((float) $order->grand_total, 0, ',', '.');
+        $expiryDate = $order->expires_at ? $order->expires_at->format('d M Y, H:i') . ' WIB' : 'Tanpa Batas Waktu';
+
+        // --- Interactive WhatsApp Text Message ---
+        $waMessage = "Halo Kak *{$customer->name}*,\n\n"
+            . "📌 *PENGINGAT PEMBAYARAN TIKET* ⏳\n\n"
+            . "Kami menginfokan bahwa pesanan tiket Anda dengan No. Order *{$order->order_code}* saat ini masih *MENUNGGU PEMBAYARAN*.\n\n"
+            . "🎟️ *Detail Pesanan:*\n{$itemsText}"
+            . "💰 *Total Pembayaran:* *{$grandTotalFormatted}*\n"
+            . ($order->expires_at ? "⏰ *Batas Waktu Bayar:* *{$expiryDate}*\n\n" : "\n")
+            . "💳 *Silakan Transfer ke Rekening Berikut:*\n"
+            . "{$bankInfo}\n"
+            . "👇 *SETELAH TRANSFER, KLIK LINK INTERAKTIF DIBAWAH UNTUK KONFIRMASI BAYAR:* 👇\n"
+            . "🔗 {$baseUrl}/konfirmasi-bayar?search={$order->order_code}\n\n"
+            . "Atau cek status pesanan Anda di:\n"
+            . "🔗 {$baseUrl}/status-order/{$order->order_code}\n\n"
+            . "Apabila Kakak sudah melakukan pembayaran, mohon abaikan pesan ini. Terima kasih! 🙏";
+
+        // --- Email HTML ---
+        $emailHtml = "
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;'>
+            <div style='background: #dd6b20; color: #fff; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;'>
+                <h2 style='margin: 0;'>⏳ Pengingat Pembayaran Tiket</h2>
+            </div>
+            <div style='padding: 20px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;'>
+                <p>Halo <strong>{$customer->name}</strong>,</p>
+                <p>Kami mendapati pesanan tiket Anda dengan nomor <strong>{$order->order_code}</strong> saat ini masih menunggu pembayaran.</p>
+                
+                <table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>
+                    <tr><td style='padding: 8px; border-bottom: 1px solid #ddd;'><strong>No Pesanan</strong></td><td style='padding: 8px; border-bottom: 1px solid #ddd;'>{$order->order_code}</td></tr>
+                    <tr><td style='padding: 8px; border-bottom: 1px solid #ddd;'><strong>Total Tagihan</strong></td><td style='padding: 8px; border-bottom: 1px solid #ddd; color: #dd6b20; font-weight: bold;'>{$grandTotalFormatted}</td></tr>
+                    <tr><td style='padding: 8px; border-bottom: 1px solid #ddd;'><strong>Batas Waktu Bayar</strong></td><td style='padding: 8px; border-bottom: 1px solid #ddd;'>{$expiryDate}</td></tr>
+                </table>
+
+                <h3>Instruksi Pembayaran:</h3>
+                <p>Silakan transfer tepat sejumlah <strong>{$grandTotalFormatted}</strong> ke rekening:</p>
+                <div style='background: #f7fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;'>
+                    <p style='margin: 4px 0;'><strong>Bank:</strong> {$order->bankAccount?->bank_name}</p>
+                    <p style='margin: 4px 0;'><strong>No. Rekening:</strong> {$order->bankAccount?->account_number}</p>
+                    <p style='margin: 4px 0;'><strong>Atas Nama:</strong> {$order->bankAccount?->account_holder_name}</p>
+                </div>
+
+                <p style='margin-top: 20px;'>Setelah melakukan transfer, silakan konfirmasi pembayaran Anda di link berikut:</p>
+                <p><a href='{$baseUrl}/konfirmasi-bayar?search={$order->order_code}' style='background: #dd6b20; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block; font-weight: bold;'>💳 Upload Bukti Pembayaran</a></p>
+                <br>
+                <p>Salam hangat,<br><strong>Tim Masivers Community</strong></p>
+            </div>
+        </div>";
+
+        $this->sendWa($customer->phone, $waMessage);
+        $this->sendEmail($customer->email, "⏳ Pengingat Pembayaran Tiket {$order->order_code} - Masivers Ticketing", $emailHtml);
+    }
 }
