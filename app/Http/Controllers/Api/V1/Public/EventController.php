@@ -27,7 +27,7 @@ class EventController extends Controller
             ->whereIn('status', ['available', 'coming_soon', 'sold_out'])
             ->orderBy('sort_order')
             ->get()
-            ->map(fn($p) => array_merge($p->toArray(), [
+            ->map(fn(TicketProduct $p) => array_merge($p->toArray(), [
                 'effective_price' => $p->getEffectivePrice(),
                 'available_quota' => $p->getAvailableQuota(),
             ]));
