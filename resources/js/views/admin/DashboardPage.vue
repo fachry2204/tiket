@@ -117,7 +117,7 @@ const chartOptions = computed(() => ({
   tooltip: { theme: 'dark' },
 }))
 
-const chartSeries = computed(() => [{ name: 'Order', data: chartData.value.counts }])
+const chartSeries = computed(() => [{ name: 'Tiket', data: chartData.value.counts }])
 
 async function loadDashboard() {
   try {
