@@ -32,19 +32,21 @@ class DashboardController extends Controller
                     ->get(),
                 'daily_sales' => Order::where('order_status', 'paid')
                     ->where('created_at', '>=', now()->subDays(7))
-                    ->withSum('items', 'quantity')
                     ->selectRaw('DATE(created_at) as date, SUM(grand_total) as revenue')
-                    ->groupBy('date')
+                    ->groupBy(\DB::raw('DATE(created_at)'))
                     ->orderBy('date')
                     ->get()
-                    ->map(function ($orderGroup) {
+                    ->map(function ($row) {
+                        $ticketCount = \DB::table('order_items')
+                            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+                            ->where('orders.order_status', 'paid')
+                            ->whereNull('orders.deleted_at')
+                            ->whereDate('orders.created_at', $row->date)
+                            ->sum('order_items.quantity');
                         return [
-                            'date' => $orderGroup->date,
-                            'revenue' => $orderGroup->revenue,
-                            'count' => Order::where('order_status', 'paid')
-                                ->whereDate('created_at', $orderGroup->date)
-                                ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-                                ->sum('order_items.quantity'),
+                            'date' => $row->date,
+                            'revenue' => (float) $row->revenue,
+                            'count' => (int) $ticketCount,
                         ];
                     }),
             ]
